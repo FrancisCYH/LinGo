@@ -45,7 +45,7 @@ class WriteEngine(params: AXI4BundleParameters) extends RawModule {
         // =========================================================================
         // state machine
         // =========================================================================
-        val s_idle :: s_w_wait :: s_w_stream :: s_b_valid :: Nil = Enum(4)
+        val s_idle :: s_w_stream :: s_b_valid :: Nil = Enum(3)
 
         val state = RegInit(s_idle)
         val spad_needed_len = RegInit(0.U(8.W))
@@ -100,35 +100,17 @@ class WriteEngine(params: AXI4BundleParameters) extends RawModule {
                     wSize   := 0.U
                 }
             }
-            is(s_w_wait) {
-                when(ready) {
-                    state   := s_w_stream
-                    leftLen := leftLen
-                    iAddr   := Mux(s_axi.w.ready, NextAddr, iAddr)
-                }
-            }
             is(s_w_stream) {
-                when(!ready) {
-                    state   := s_w_wait
-                    leftLen := leftLen
-                }.elsewhen(s_axi.w.bits.last & s_axi.w.valid) {
-                    //// TODO: how to do this
-                    // state   := Mux(s_axi.r.ready, s_r_last, state)
-                    // iAddr   := Mux(s_axi.r.ready, NextAddr, iAddr)
-                    // leftLen := Mux(s_axi.r.ready, leftLen - 1.U, leftLen)
-                    // rLast   := true.B
-
+                // Advance only when both the AXI W beat and SRAM accept it.
+                when(s_axi.w.fire) {
+                  when(s_axi.w.bits.last) {
                     state   := s_b_valid
                     iAddr   := iAddr
                     leftLen := leftLen
-                }.elsewhen(s_axi.w.valid){
-                    state   := state
+                  }.otherwise {
                     leftLen := leftLen - 1.U
                     iAddr   := NextAddr
-                }.otherwise{
-                    state   := state
-                    leftLen := leftLen
-                    iAddr   := iAddr
+                  }
                 }
             }
             is(s_b_valid){
@@ -144,7 +126,7 @@ class WriteEngine(params: AXI4BundleParameters) extends RawModule {
         s_axi.aw.ready      := state === s_idle
 
         /// w signals   
-        s_axi.w.ready       := state === s_w_stream
+        s_axi.w.ready       := (state === s_w_stream) && ready
         data                := s_axi.w.bits.data 
         strb                := s_axi.w.bits.strb
 
@@ -154,7 +136,7 @@ class WriteEngine(params: AXI4BundleParameters) extends RawModule {
         s_axi.b.valid       := state === s_b_valid
 
         /// Upacked signals to SRAM
-        valid       := state === s_w_stream
+        valid       := (state === s_w_stream) && s_axi.w.valid
         addr        := iAddr
     }
 }

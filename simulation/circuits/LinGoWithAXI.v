@@ -1712,11 +1712,9 @@ module WriteEngine(
   reg [2:0] wSize; // @[src/main/scala/axi/WriteEngine.scala 59:28]
   reg [7:0] iBID; // @[src/main/scala/axi/WriteEngine.scala 63:27]
   reg [15:0] iAddr; // @[src/main/scala/axi/WriteEngine.scala 71:34]
+  wire  _T_2 = s_axi_w_ready & s_axi_w_valid; // @[src/main/scala/chisel3/util/Decoupled.scala 52:35]
   wire [15:0] NextAddr = NextAddr_m_NextAddr; // @[src/main/scala/axi/WriteEngine.scala 73:31 74:21]
-  wire [15:0] _GEN_12 = s_axi_w_valid ? NextAddr : iAddr; // @[src/main/scala/axi/WriteEngine.scala 124:42 127:29 131:29]
-  wire [1:0] _GEN_13 = s_axi_w_bits_last & s_axi_w_valid ? 2'h3 : state; // @[src/main/scala/axi/WriteEngine.scala 114:63 121:29]
-  wire [15:0] _GEN_14 = s_axi_w_bits_last & s_axi_w_valid ? iAddr : _GEN_12; // @[src/main/scala/axi/WriteEngine.scala 114:63 122:29]
-  wire [1:0] _GEN_19 = s_axi_b_ready ? 2'h0 : state; // @[src/main/scala/axi/WriteEngine.scala 135:36 136:29 50:28]
+  wire  _s_axi_w_ready_T = state == 2'h1; // @[src/main/scala/axi/WriteEngine.scala 129:39]
   SramAddrGen NextAddr_m ( // @[src/main/scala/axi/SramAddrGen.scala 50:23]
     .CurAddr(NextAddr_m_CurAddr),
     .Len(NextAddr_m_Len),
@@ -1724,14 +1722,14 @@ module WriteEngine(
     .Burst(NextAddr_m_Burst),
     .NextAddr(NextAddr_m_NextAddr)
   );
-  assign s_axi_aw_ready = state == 2'h0; // @[src/main/scala/axi/WriteEngine.scala 144:38]
-  assign s_axi_w_ready = state == 2'h2; // @[src/main/scala/axi/WriteEngine.scala 147:38]
-  assign s_axi_b_valid = state == 2'h3; // @[src/main/scala/axi/WriteEngine.scala 154:38]
-  assign s_axi_b_bits_id = iBID; // @[src/main/scala/axi/WriteEngine.scala 152:29]
-  assign valid = state == 2'h2; // @[src/main/scala/axi/WriteEngine.scala 157:30]
-  assign addr = iAddr; // @[src/main/scala/axi/WriteEngine.scala 158:21]
-  assign data = s_axi_w_bits_data; // @[src/main/scala/axi/WriteEngine.scala 148:29]
-  assign strb = s_axi_w_bits_strb; // @[src/main/scala/axi/WriteEngine.scala 149:29]
+  assign s_axi_aw_ready = state == 2'h0; // @[src/main/scala/axi/WriteEngine.scala 126:38]
+  assign s_axi_w_ready = state == 2'h1; // @[src/main/scala/axi/WriteEngine.scala 129:39]
+  assign s_axi_b_valid = state == 2'h2; // @[src/main/scala/axi/WriteEngine.scala 136:38]
+  assign s_axi_b_bits_id = iBID; // @[src/main/scala/axi/WriteEngine.scala 134:29]
+  assign valid = _s_axi_w_ready_T & s_axi_w_valid; // @[src/main/scala/axi/WriteEngine.scala 139:47]
+  assign addr = iAddr; // @[src/main/scala/axi/WriteEngine.scala 140:21]
+  assign data = s_axi_w_bits_data; // @[src/main/scala/axi/WriteEngine.scala 130:29]
+  assign strb = s_axi_w_bits_strb; // @[src/main/scala/axi/WriteEngine.scala 131:29]
   assign NextAddr_m_CurAddr = iAddr; // @[src/main/scala/axi/SramAddrGen.scala 51:21]
   assign NextAddr_m_Len = spad_needed_len; // @[src/main/scala/axi/SramAddrGen.scala 52:21]
   assign NextAddr_m_Size = wSize; // @[src/main/scala/axi/SramAddrGen.scala 53:21]
@@ -1740,21 +1738,19 @@ module WriteEngine(
     if (reset) begin // @[src/main/scala/axi/WriteEngine.scala 84:23]
       state <= 2'h0; // @[src/main/scala/axi/WriteEngine.scala 86:38 87:37 96:29]
     end else if (2'h0 == state) begin // @[src/main/scala/axi/WriteEngine.scala 84:23]
-      if (s_axi_aw_valid) begin // @[src/main/scala/axi/WriteEngine.scala 104:29]
-        state <= 2'h2; // @[src/main/scala/axi/WriteEngine.scala 105:29]
+      if (s_axi_aw_valid) begin // @[src/main/scala/axi/WriteEngine.scala 105:36]
+        state <= 2'h1; // @[src/main/scala/axi/WriteEngine.scala 106:43 107:29 50:28]
       end
     end else if (2'h1 == state) begin // @[src/main/scala/axi/WriteEngine.scala 84:23]
-      if (ready) begin // @[src/main/scala/axi/WriteEngine.scala 111:30]
-        state <= 2'h2; // @[src/main/scala/axi/WriteEngine.scala 112:29]
+      if (_T_2) begin // @[src/main/scala/axi/WriteEngine.scala 117:36]
+        if (s_axi_w_bits_last) begin // @[src/main/scala/axi/WriteEngine.scala 118:29]
+          state <= 2'h2;
+        end
       end
-    end else if (2'h2 == state) begin // @[src/main/scala/axi/WriteEngine.scala 84:23]
-      if (~ready) begin
-        state <= 2'h1;
-      end else begin
-        state <= _GEN_13;
+    end else if (2'h2 == state) begin // @[src/main/scala/axi/WriteEngine.scala 50:28]
+      if (s_axi_b_ready) begin
+        state <= 2'h0;
       end
-    end else if (2'h3 == state) begin // @[src/main/scala/axi/WriteEngine.scala 50:28]
-      state <= _GEN_19;
     end
   end
   always @(posedge aclk or posedge reset) begin
@@ -1803,18 +1799,14 @@ module WriteEngine(
     if (reset) begin // @[src/main/scala/axi/WriteEngine.scala 84:23]
       iAddr <= 16'h0; // @[src/main/scala/axi/WriteEngine.scala 71:34 86:38 91:37]
     end else if (2'h0 == state) begin // @[src/main/scala/axi/WriteEngine.scala 84:23]
-      if (s_axi_aw_valid) begin // @[src/main/scala/axi/WriteEngine.scala 104:29]
-        iAddr <= s_axi_aw_bits_addr; // @[src/main/scala/axi/WriteEngine.scala 107:35]
+      if (s_axi_aw_valid) begin // @[src/main/scala/axi/WriteEngine.scala 105:36]
+        iAddr <= s_axi_aw_bits_addr; // @[src/main/scala/axi/WriteEngine.scala 106:43 108:29 112:29]
       end
-    end else if (2'h1 == state) begin // @[src/main/scala/axi/WriteEngine.scala 84:23]
-      if (ready) begin // @[src/main/scala/axi/WriteEngine.scala 111:30]
-        if (s_axi_w_ready) begin // @[src/main/scala/axi/WriteEngine.scala 71:34]
+    end else if (2'h1 == state) begin // @[src/main/scala/axi/WriteEngine.scala 71:34]
+      if (_T_2) begin
+        if (!(s_axi_w_bits_last)) begin
           iAddr <= NextAddr;
         end
-      end
-    end else if (2'h2 == state) begin // @[src/main/scala/axi/WriteEngine.scala 71:34]
-      if (!(~ready)) begin
-        iAddr <= _GEN_14;
       end
     end
   end
@@ -1892,25 +1884,234 @@ end // initial
 `endif
 `endif // SYNTHESIS
 endmodule
+module Queue(
+  input          clock,
+  input          reset,
+  output         io_enq_ready, // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+  input          io_enq_valid, // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+  input  [7:0]   io_enq_bits_id, // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+  input  [127:0] io_enq_bits_data, // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+  input          io_enq_bits_last, // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+  input          io_deq_ready, // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+  output         io_deq_valid, // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+  output [7:0]   io_deq_bits_id, // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+  output [127:0] io_deq_bits_data, // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+  output [1:0]   io_deq_bits_resp, // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+  output         io_deq_bits_last // @[src/main/scala/chisel3/util/Decoupled.scala 273:14]
+);
+`ifdef RANDOMIZE_MEM_INIT
+  reg [31:0] _RAND_0;
+  reg [127:0] _RAND_1;
+  reg [31:0] _RAND_2;
+  reg [31:0] _RAND_3;
+`endif // RANDOMIZE_MEM_INIT
+`ifdef RANDOMIZE_REG_INIT
+  reg [31:0] _RAND_4;
+  reg [31:0] _RAND_5;
+  reg [31:0] _RAND_6;
+`endif // RANDOMIZE_REG_INIT
+  reg [7:0] ram_id [0:1]; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_id_io_deq_bits_MPORT_en; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_id_io_deq_bits_MPORT_addr; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire [7:0] ram_id_io_deq_bits_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire [7:0] ram_id_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_id_MPORT_addr; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_id_MPORT_mask; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_id_MPORT_en; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  reg [127:0] ram_data [0:1]; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_data_io_deq_bits_MPORT_en; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_data_io_deq_bits_MPORT_addr; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire [127:0] ram_data_io_deq_bits_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire [127:0] ram_data_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_data_MPORT_addr; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_data_MPORT_mask; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_data_MPORT_en; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  reg [1:0] ram_resp [0:1]; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_resp_io_deq_bits_MPORT_en; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_resp_io_deq_bits_MPORT_addr; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire [1:0] ram_resp_io_deq_bits_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire [1:0] ram_resp_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_resp_MPORT_addr; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_resp_MPORT_mask; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_resp_MPORT_en; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  reg  ram_last [0:1]; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_last_io_deq_bits_MPORT_en; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_last_io_deq_bits_MPORT_addr; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_last_io_deq_bits_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_last_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_last_MPORT_addr; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_last_MPORT_mask; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  wire  ram_last_MPORT_en; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  reg  enq_ptr_value; // @[src/main/scala/chisel3/util/Counter.scala 61:40]
+  reg  deq_ptr_value; // @[src/main/scala/chisel3/util/Counter.scala 61:40]
+  reg  maybe_full; // @[src/main/scala/chisel3/util/Decoupled.scala 277:27]
+  wire  ptr_match = enq_ptr_value == deq_ptr_value; // @[src/main/scala/chisel3/util/Decoupled.scala 278:33]
+  wire  empty = ptr_match & ~maybe_full; // @[src/main/scala/chisel3/util/Decoupled.scala 279:25]
+  wire  full = ptr_match & maybe_full; // @[src/main/scala/chisel3/util/Decoupled.scala 280:24]
+  wire  do_enq = io_enq_ready & io_enq_valid; // @[src/main/scala/chisel3/util/Decoupled.scala 52:35]
+  wire  do_deq = io_deq_ready & io_deq_valid; // @[src/main/scala/chisel3/util/Decoupled.scala 52:35]
+  assign ram_id_io_deq_bits_MPORT_en = 1'h1;
+  assign ram_id_io_deq_bits_MPORT_addr = deq_ptr_value;
+  assign ram_id_io_deq_bits_MPORT_data = ram_id[ram_id_io_deq_bits_MPORT_addr]; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  assign ram_id_MPORT_data = io_enq_bits_id;
+  assign ram_id_MPORT_addr = enq_ptr_value;
+  assign ram_id_MPORT_mask = 1'h1;
+  assign ram_id_MPORT_en = io_enq_ready & io_enq_valid;
+  assign ram_data_io_deq_bits_MPORT_en = 1'h1;
+  assign ram_data_io_deq_bits_MPORT_addr = deq_ptr_value;
+  assign ram_data_io_deq_bits_MPORT_data = ram_data[ram_data_io_deq_bits_MPORT_addr]; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  assign ram_data_MPORT_data = io_enq_bits_data;
+  assign ram_data_MPORT_addr = enq_ptr_value;
+  assign ram_data_MPORT_mask = 1'h1;
+  assign ram_data_MPORT_en = io_enq_ready & io_enq_valid;
+  assign ram_resp_io_deq_bits_MPORT_en = 1'h1;
+  assign ram_resp_io_deq_bits_MPORT_addr = deq_ptr_value;
+  assign ram_resp_io_deq_bits_MPORT_data = ram_resp[ram_resp_io_deq_bits_MPORT_addr]; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  assign ram_resp_MPORT_data = 2'h0;
+  assign ram_resp_MPORT_addr = enq_ptr_value;
+  assign ram_resp_MPORT_mask = 1'h1;
+  assign ram_resp_MPORT_en = io_enq_ready & io_enq_valid;
+  assign ram_last_io_deq_bits_MPORT_en = 1'h1;
+  assign ram_last_io_deq_bits_MPORT_addr = deq_ptr_value;
+  assign ram_last_io_deq_bits_MPORT_data = ram_last[ram_last_io_deq_bits_MPORT_addr]; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+  assign ram_last_MPORT_data = io_enq_bits_last;
+  assign ram_last_MPORT_addr = enq_ptr_value;
+  assign ram_last_MPORT_mask = 1'h1;
+  assign ram_last_MPORT_en = io_enq_ready & io_enq_valid;
+  assign io_enq_ready = ~full; // @[src/main/scala/chisel3/util/Decoupled.scala 304:19]
+  assign io_deq_valid = ~empty; // @[src/main/scala/chisel3/util/Decoupled.scala 303:19]
+  assign io_deq_bits_id = ram_id_io_deq_bits_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 311:17]
+  assign io_deq_bits_data = ram_data_io_deq_bits_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 311:17]
+  assign io_deq_bits_resp = ram_resp_io_deq_bits_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 311:17]
+  assign io_deq_bits_last = ram_last_io_deq_bits_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 311:17]
+  always @(posedge clock) begin
+    if (ram_id_MPORT_en & ram_id_MPORT_mask) begin
+      ram_id[ram_id_MPORT_addr] <= ram_id_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+    end
+    if (ram_data_MPORT_en & ram_data_MPORT_mask) begin
+      ram_data[ram_data_MPORT_addr] <= ram_data_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+    end
+    if (ram_resp_MPORT_en & ram_resp_MPORT_mask) begin
+      ram_resp[ram_resp_MPORT_addr] <= ram_resp_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+    end
+    if (ram_last_MPORT_en & ram_last_MPORT_mask) begin
+      ram_last[ram_last_MPORT_addr] <= ram_last_MPORT_data; // @[src/main/scala/chisel3/util/Decoupled.scala 274:95]
+    end
+  end
+  always @(posedge clock or posedge reset) begin
+    if (reset) begin // @[src/main/scala/chisel3/util/Decoupled.scala 287:16]
+      enq_ptr_value <= 1'h0; // @[src/main/scala/chisel3/util/Counter.scala 77:15]
+    end else if (do_enq) begin // @[src/main/scala/chisel3/util/Counter.scala 61:40]
+      enq_ptr_value <= enq_ptr_value + 1'h1;
+    end
+  end
+  always @(posedge clock or posedge reset) begin
+    if (reset) begin // @[src/main/scala/chisel3/util/Decoupled.scala 291:16]
+      deq_ptr_value <= 1'h0; // @[src/main/scala/chisel3/util/Counter.scala 77:15]
+    end else if (do_deq) begin // @[src/main/scala/chisel3/util/Counter.scala 61:40]
+      deq_ptr_value <= deq_ptr_value + 1'h1;
+    end
+  end
+  always @(posedge clock or posedge reset) begin
+    if (reset) begin // @[src/main/scala/chisel3/util/Decoupled.scala 294:27]
+      maybe_full <= 1'h0; // @[src/main/scala/chisel3/util/Decoupled.scala 295:16]
+    end else if (do_enq != do_deq) begin // @[src/main/scala/chisel3/util/Decoupled.scala 277:27]
+      maybe_full <= do_enq;
+    end
+  end
+// Register and memory initialization
+`ifdef RANDOMIZE_GARBAGE_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_INVALID_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_REG_INIT
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+`define RANDOMIZE
+`endif
+`ifndef RANDOM
+`define RANDOM $random
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+  integer initvar;
+`endif
+`ifndef SYNTHESIS
+`ifdef FIRRTL_BEFORE_INITIAL
+`FIRRTL_BEFORE_INITIAL
+`endif
+initial begin
+  `ifdef RANDOMIZE
+    `ifdef INIT_RANDOM
+      `INIT_RANDOM
+    `endif
+    `ifndef VERILATOR
+      `ifdef RANDOMIZE_DELAY
+        #`RANDOMIZE_DELAY begin end
+      `else
+        #0.002 begin end
+      `endif
+    `endif
+`ifdef RANDOMIZE_MEM_INIT
+  _RAND_0 = {1{`RANDOM}};
+  for (initvar = 0; initvar < 2; initvar = initvar+1)
+    ram_id[initvar] = _RAND_0[7:0];
+  _RAND_1 = {4{`RANDOM}};
+  for (initvar = 0; initvar < 2; initvar = initvar+1)
+    ram_data[initvar] = _RAND_1[127:0];
+  _RAND_2 = {1{`RANDOM}};
+  for (initvar = 0; initvar < 2; initvar = initvar+1)
+    ram_resp[initvar] = _RAND_2[1:0];
+  _RAND_3 = {1{`RANDOM}};
+  for (initvar = 0; initvar < 2; initvar = initvar+1)
+    ram_last[initvar] = _RAND_3[0:0];
+`endif // RANDOMIZE_MEM_INIT
+`ifdef RANDOMIZE_REG_INIT
+  _RAND_4 = {1{`RANDOM}};
+  enq_ptr_value = _RAND_4[0:0];
+  _RAND_5 = {1{`RANDOM}};
+  deq_ptr_value = _RAND_5[0:0];
+  _RAND_6 = {1{`RANDOM}};
+  maybe_full = _RAND_6[0:0];
+`endif // RANDOMIZE_REG_INIT
+  if (reset) begin
+    enq_ptr_value = 1'h0;
+  end
+  if (reset) begin
+    deq_ptr_value = 1'h0;
+  end
+  if (reset) begin
+    maybe_full = 1'h0;
+  end
+  `endif // RANDOMIZE
+end // initial
+`ifdef FIRRTL_AFTER_INITIAL
+`FIRRTL_AFTER_INITIAL
+`endif
+`endif // SYNTHESIS
+endmodule
 module ReadEngine(
-  input          aclk, // @[src/main/scala/axi/ReadEngine.scala 37:25]
-  input          aresetn, // @[src/main/scala/axi/ReadEngine.scala 38:25]
-  output         s_axi_ar_ready, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  input          s_axi_ar_valid, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  input  [7:0]   s_axi_ar_bits_id, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  input  [15:0]  s_axi_ar_bits_addr, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  input  [7:0]   s_axi_ar_bits_len, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  input  [2:0]   s_axi_ar_bits_size, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  input  [1:0]   s_axi_ar_bits_burst, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  input          s_axi_r_ready, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  output         s_axi_r_valid, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  output [7:0]   s_axi_r_bits_id, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  output [127:0] s_axi_r_bits_data, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  output         s_axi_r_bits_last, // @[src/main/scala/axi/ReadEngine.scala 41:25]
-  input          ready, // @[src/main/scala/axi/ReadEngine.scala 44:25]
-  output         valid, // @[src/main/scala/axi/ReadEngine.scala 45:25]
-  output [15:0]  addr, // @[src/main/scala/axi/ReadEngine.scala 46:25]
-  input  [127:0] data // @[src/main/scala/axi/ReadEngine.scala 47:25]
+  input          aclk, // @[src/main/scala/axi/ReadEngine.scala 13:16]
+  input          aresetn, // @[src/main/scala/axi/ReadEngine.scala 14:19]
+  output         s_axi_ar_ready, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  input          s_axi_ar_valid, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  input  [7:0]   s_axi_ar_bits_id, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  input  [15:0]  s_axi_ar_bits_addr, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  input  [7:0]   s_axi_ar_bits_len, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  input  [2:0]   s_axi_ar_bits_size, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  input  [1:0]   s_axi_ar_bits_burst, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  input          s_axi_r_ready, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  output         s_axi_r_valid, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  output [7:0]   s_axi_r_bits_id, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  output [127:0] s_axi_r_bits_data, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  output [1:0]   s_axi_r_bits_resp, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  output         s_axi_r_bits_last, // @[src/main/scala/axi/ReadEngine.scala 15:17]
+  input          ready, // @[src/main/scala/axi/ReadEngine.scala 18:17]
+  output         valid, // @[src/main/scala/axi/ReadEngine.scala 19:17]
+  output [15:0]  addr, // @[src/main/scala/axi/ReadEngine.scala 20:16]
+  input  [127:0] data // @[src/main/scala/axi/ReadEngine.scala 21:16]
 );
 `ifdef RANDOMIZE_REG_INIT
   reg [31:0] _RAND_0;
@@ -1920,188 +2121,197 @@ module ReadEngine(
   reg [31:0] _RAND_4;
   reg [31:0] _RAND_5;
   reg [31:0] _RAND_6;
-  reg [127:0] _RAND_7;
+  reg [31:0] _RAND_7;
   reg [31:0] _RAND_8;
+  reg [31:0] _RAND_9;
 `endif // RANDOMIZE_REG_INIT
-  wire [15:0] NextAddr_m_CurAddr; // @[src/main/scala/axi/SramAddrGen.scala 50:23]
-  wire [7:0] NextAddr_m_Len; // @[src/main/scala/axi/SramAddrGen.scala 50:23]
-  wire [2:0] NextAddr_m_Size; // @[src/main/scala/axi/SramAddrGen.scala 50:23]
-  wire [1:0] NextAddr_m_Burst; // @[src/main/scala/axi/SramAddrGen.scala 50:23]
-  wire [15:0] NextAddr_m_NextAddr; // @[src/main/scala/axi/SramAddrGen.scala 50:23]
-  wire  reset = ~aresetn; // @[src/main/scala/axi/ReadEngine.scala 52:33]
-  reg [1:0] state; // @[src/main/scala/axi/ReadEngine.scala 61:28]
-  reg [7:0] spad_needed_len; // @[src/main/scala/axi/ReadEngine.scala 62:38]
-  reg [7:0] rId; // @[src/main/scala/axi/ReadEngine.scala 67:26]
-  reg [1:0] rBurst; // @[src/main/scala/axi/ReadEngine.scala 69:29]
-  reg [2:0] rSize; // @[src/main/scala/axi/ReadEngine.scala 70:28]
-  reg [7:0] leftLen; // @[src/main/scala/axi/ReadEngine.scala 73:30]
-  reg [15:0] iAddr; // @[src/main/scala/axi/ReadEngine.scala 78:34]
-  wire [15:0] NextAddr = NextAddr_m_NextAddr; // @[src/main/scala/axi/ReadEngine.scala 80:31 81:21]
-  wire [7:0] _leftLen_T_1 = leftLen - 8'h1; // @[src/main/scala/axi/ReadEngine.scala 136:59]
-  wire [7:0] _leftLen_T_2 = s_axi_r_ready ? _leftLen_T_1 : leftLen; // @[src/main/scala/axi/ReadEngine.scala 136:35]
-  wire [1:0] _state_T = s_axi_r_ready ? 2'h3 : state; // @[src/main/scala/axi/ReadEngine.scala 146:35]
-  wire [15:0] _iAddr_T = s_axi_r_ready ? NextAddr : iAddr; // @[src/main/scala/axi/ReadEngine.scala 147:35]
-  wire [1:0] _GEN_20 = leftLen == 8'h1 ? _state_T : state; // @[src/main/scala/axi/ReadEngine.scala 139:45 146:29]
-  wire [15:0] _GEN_21 = leftLen == 8'h1 ? _iAddr_T : _iAddr_T; // @[src/main/scala/axi/ReadEngine.scala 139:45 147:29]
-  wire [7:0] _GEN_22 = leftLen == 8'h1 ? _leftLen_T_2 : _leftLen_T_2; // @[src/main/scala/axi/ReadEngine.scala 139:45 148:29]
-  wire [1:0] _GEN_28 = s_axi_r_ready ? 2'h0 : state; // @[src/main/scala/axi/ReadEngine.scala 168:36 169:29 181:29]
-  wire [7:0] _GEN_29 = s_axi_r_ready ? 8'h0 : leftLen; // @[src/main/scala/axi/ReadEngine.scala 168:36 170:29 182:29]
-  wire [15:0] _GEN_30 = s_axi_r_ready ? 16'h0 : iAddr; // @[src/main/scala/axi/ReadEngine.scala 168:36 171:29 183:29]
-  wire  _s_axi_ar_ready_T = state == 2'h0; // @[src/main/scala/axi/ReadEngine.scala 193:34]
-  wire  _s_axi_r_valid_T = state == 2'h2; // @[src/main/scala/axi/ReadEngine.scala 197:38]
-  wire  _s_axi_r_valid_T_1 = state == 2'h3; // @[src/main/scala/axi/ReadEngine.scala 197:62]
-  wire  _valid_T_1 = state == 2'h1; // @[src/main/scala/axi/ReadEngine.scala 204:54]
-  reg [127:0] Stream_data_reg; // @[src/main/scala/axi/ReadEngine.scala 209:38]
-  reg  SpadState; // @[src/main/scala/axi/ReadEngine.scala 211:32]
-  wire  _T_7 = ~SpadState; // @[src/main/scala/axi/ReadEngine.scala 212:27]
-  wire  _GEN_52 = ~s_axi_r_ready | SpadState; // @[src/main/scala/axi/ReadEngine.scala 219:43 220:31 211:32]
-  SramAddrGen NextAddr_m ( // @[src/main/scala/axi/SramAddrGen.scala 50:23]
-    .CurAddr(NextAddr_m_CurAddr),
-    .Len(NextAddr_m_Len),
-    .Size(NextAddr_m_Size),
-    .Burst(NextAddr_m_Burst),
-    .NextAddr(NextAddr_m_NextAddr)
+  wire [15:0] nextAddress_m_CurAddr; // @[src/main/scala/axi/SramAddrGen.scala 50:23]
+  wire [7:0] nextAddress_m_Len; // @[src/main/scala/axi/SramAddrGen.scala 50:23]
+  wire [2:0] nextAddress_m_Size; // @[src/main/scala/axi/SramAddrGen.scala 50:23]
+  wire [1:0] nextAddress_m_Burst; // @[src/main/scala/axi/SramAddrGen.scala 50:23]
+  wire [15:0] nextAddress_m_NextAddr; // @[src/main/scala/axi/SramAddrGen.scala 50:23]
+  wire  responses_clock; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire  responses_reset; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire  responses_io_enq_ready; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire  responses_io_enq_valid; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire [7:0] responses_io_enq_bits_id; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire [127:0] responses_io_enq_bits_data; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire  responses_io_enq_bits_last; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire  responses_io_deq_ready; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire  responses_io_deq_valid; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire [7:0] responses_io_deq_bits_id; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire [127:0] responses_io_deq_bits_data; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire [1:0] responses_io_deq_bits_resp; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire  responses_io_deq_bits_last; // @[src/main/scala/axi/ReadEngine.scala 38:27]
+  wire  _T_1 = ~aresetn; // @[src/main/scala/axi/ReadEngine.scala 23:38]
+  reg  active; // @[src/main/scala/axi/ReadEngine.scala 24:25]
+  reg [7:0] burstId; // @[src/main/scala/axi/ReadEngine.scala 25:26]
+  reg [7:0] burstLen; // @[src/main/scala/axi/ReadEngine.scala 26:27]
+  reg [2:0] burstSize; // @[src/main/scala/axi/ReadEngine.scala 27:28]
+  reg [1:0] burstType; // @[src/main/scala/axi/ReadEngine.scala 28:28]
+  reg [15:0] requestAddr; // @[src/main/scala/axi/ReadEngine.scala 29:30]
+  reg [8:0] remaining; // @[src/main/scala/axi/ReadEngine.scala 33:28]
+  reg [1:0] occupied; // @[src/main/scala/axi/ReadEngine.scala 37:27]
+  wire  responseAccepted = s_axi_r_ready & s_axi_r_valid; // @[src/main/scala/chisel3/util/Decoupled.scala 52:35]
+  wire  requestAccepted = valid & ready; // @[src/main/scala/axi/ReadEngine.scala 43:33]
+  reg  returning; // @[src/main/scala/axi/ReadEngine.scala 45:28]
+  reg  returningLast; // @[src/main/scala/axi/ReadEngine.scala 46:34]
+  wire  _T_2 = s_axi_ar_ready & s_axi_ar_valid; // @[src/main/scala/chisel3/util/Decoupled.scala 52:35]
+  wire [8:0] _remaining_T = s_axi_ar_bits_len + 8'h1; // @[src/main/scala/axi/ReadEngine.scala 61:38]
+  wire  _GEN_1 = _T_2 | active; // @[src/main/scala/axi/ReadEngine.scala 54:25 55:14 24:25]
+  wire [15:0] _GEN_6 = _T_2 ? s_axi_ar_bits_addr : requestAddr; // @[src/main/scala/axi/ReadEngine.scala 54:25 60:19 29:30]
+  wire [8:0] _remaining_T_2 = remaining - 9'h1; // @[src/main/scala/axi/ReadEngine.scala 64:30]
+  wire [1:0] _occupied_T_1 = occupied + 2'h1; // @[src/main/scala/axi/ReadEngine.scala 70:49]
+  wire [1:0] _occupied_T_3 = occupied - 2'h1; // @[src/main/scala/axi/ReadEngine.scala 70:65]
+  SramAddrGen nextAddress_m ( // @[src/main/scala/axi/SramAddrGen.scala 50:23]
+    .CurAddr(nextAddress_m_CurAddr),
+    .Len(nextAddress_m_Len),
+    .Size(nextAddress_m_Size),
+    .Burst(nextAddress_m_Burst),
+    .NextAddr(nextAddress_m_NextAddr)
   );
-  assign s_axi_ar_ready = state == 2'h0; // @[src/main/scala/axi/ReadEngine.scala 193:34]
-  assign s_axi_r_valid = state == 2'h2 | state == 2'h3; // @[src/main/scala/axi/ReadEngine.scala 197:53]
-  assign s_axi_r_bits_id = rId; // @[src/main/scala/axi/ReadEngine.scala 198:29]
-  assign s_axi_r_bits_data = _T_7 ? data : Stream_data_reg; // @[src/main/scala/axi/ReadEngine.scala 233:27]
-  assign s_axi_r_bits_last = state == 2'h3; // @[src/main/scala/axi/ReadEngine.scala 200:38]
-  assign valid = _s_axi_r_valid_T | state == 2'h1 | _s_axi_r_valid_T_1; // @[src/main/scala/axi/ReadEngine.scala 204:67]
-  assign addr = iAddr; // @[src/main/scala/axi/ReadEngine.scala 205:21]
-  assign NextAddr_m_CurAddr = iAddr; // @[src/main/scala/axi/SramAddrGen.scala 51:21]
-  assign NextAddr_m_Len = spad_needed_len; // @[src/main/scala/axi/SramAddrGen.scala 52:21]
-  assign NextAddr_m_Size = rSize; // @[src/main/scala/axi/SramAddrGen.scala 53:21]
-  assign NextAddr_m_Burst = rBurst; // @[src/main/scala/axi/SramAddrGen.scala 54:21]
-  always @(posedge aclk or posedge reset) begin
-    if (reset) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      state <= 2'h0; // @[src/main/scala/axi/ReadEngine.scala 103:29 93:38 94:37]
-    end else if (2'h0 == state) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      if (s_axi_ar_valid) begin // @[src/main/scala/axi/ReadEngine.scala 111:29]
-        state <= 2'h1; // @[src/main/scala/axi/ReadEngine.scala 112:43 113:33 118:33]
-      end
-    end else if (2'h1 == state) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      if (ready) begin // @[src/main/scala/axi/ReadEngine.scala 134:30]
-        if (leftLen == 8'h0) begin // @[src/main/scala/axi/ReadEngine.scala 135:29]
-          state <= 2'h3;
-        end else begin
-          state <= 2'h2;
+  Queue responses ( // @[src/main/scala/axi/ReadEngine.scala 38:27]
+    .clock(responses_clock),
+    .reset(responses_reset),
+    .io_enq_ready(responses_io_enq_ready),
+    .io_enq_valid(responses_io_enq_valid),
+    .io_enq_bits_id(responses_io_enq_bits_id),
+    .io_enq_bits_data(responses_io_enq_bits_data),
+    .io_enq_bits_last(responses_io_enq_bits_last),
+    .io_deq_ready(responses_io_deq_ready),
+    .io_deq_valid(responses_io_deq_valid),
+    .io_deq_bits_id(responses_io_deq_bits_id),
+    .io_deq_bits_data(responses_io_deq_bits_data),
+    .io_deq_bits_resp(responses_io_deq_bits_resp),
+    .io_deq_bits_last(responses_io_deq_bits_last)
+  );
+  assign s_axi_ar_ready = ~active; // @[src/main/scala/axi/ReadEngine.scala 53:23]
+  assign s_axi_r_valid = responses_io_deq_valid; // @[src/main/scala/axi/ReadEngine.scala 39:13]
+  assign s_axi_r_bits_id = responses_io_deq_bits_id; // @[src/main/scala/axi/ReadEngine.scala 39:13]
+  assign s_axi_r_bits_data = responses_io_deq_bits_data; // @[src/main/scala/axi/ReadEngine.scala 39:13]
+  assign s_axi_r_bits_resp = responses_io_deq_bits_resp; // @[src/main/scala/axi/ReadEngine.scala 39:13]
+  assign s_axi_r_bits_last = responses_io_deq_bits_last; // @[src/main/scala/axi/ReadEngine.scala 39:13]
+  assign valid = active & remaining != 9'h0 & (occupied < 2'h2 | responseAccepted); // @[src/main/scala/axi/ReadEngine.scala 41:42]
+  assign addr = requestAddr; // @[src/main/scala/axi/ReadEngine.scala 42:10]
+  assign nextAddress_m_CurAddr = requestAddr; // @[src/main/scala/axi/SramAddrGen.scala 51:21]
+  assign nextAddress_m_Len = burstLen; // @[src/main/scala/axi/SramAddrGen.scala 52:21]
+  assign nextAddress_m_Size = burstSize; // @[src/main/scala/axi/SramAddrGen.scala 53:21]
+  assign nextAddress_m_Burst = burstType; // @[src/main/scala/axi/SramAddrGen.scala 54:21]
+  assign responses_clock = aclk;
+  assign responses_reset = ~aresetn; // @[src/main/scala/axi/ReadEngine.scala 23:38]
+  assign responses_io_enq_valid = returning; // @[src/main/scala/axi/ReadEngine.scala 47:28]
+  assign responses_io_enq_bits_id = burstId; // @[src/main/scala/axi/ReadEngine.scala 49:30]
+  assign responses_io_enq_bits_data = data; // @[src/main/scala/axi/ReadEngine.scala 48:32]
+  assign responses_io_enq_bits_last = returningLast; // @[src/main/scala/axi/ReadEngine.scala 51:32]
+  assign responses_io_deq_ready = s_axi_r_ready; // @[src/main/scala/axi/ReadEngine.scala 39:13]
+  always @(posedge aclk) begin
+    `ifndef SYNTHESIS
+    `ifdef PRINTF_COND
+      if (`PRINTF_COND) begin
+    `endif
+        if (~_T_1 & ~(~returning | responses_io_enq_ready)) begin
+          $fwrite(32'h80000002,
+            "Assertion failed: SRAM read response has no reserved slot\n    at ReadEngine.scala:76 assert(!returning || responses.io.enq.ready, \"SRAM read response has no reserved slot\")\n"
+            ); // @[src/main/scala/axi/ReadEngine.scala 76:11]
         end
+    `ifdef PRINTF_COND
       end
-    end else if (2'h2 == state) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      if (~ready) begin
-        state <= 2'h1;
-      end else begin
-        state <= _GEN_20;
-      end
-    end else if (2'h3 == state) begin // @[src/main/scala/axi/ReadEngine.scala 61:28]
-      state <= _GEN_28;
-    end
-  end
-  always @(posedge aclk or posedge reset) begin
-    if (reset) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      spad_needed_len <= 8'h0; // @[src/main/scala/axi/ReadEngine.scala 93:38 95:37 62:38]
-    end else if (2'h0 == state) begin // @[src/main/scala/axi/ReadEngine.scala 62:38]
-      if (s_axi_ar_valid) begin
-        spad_needed_len <= s_axi_ar_bits_len;
-      end
-    end
-  end
-  always @(posedge aclk or posedge reset) begin
-    if (reset) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      rId <= 8'h0; // @[src/main/scala/axi/ReadEngine.scala 104:29 93:38 96:37]
-    end else if (2'h0 == state) begin // @[src/main/scala/axi/ReadEngine.scala 67:26]
-      if (s_axi_ar_valid) begin
-        rId <= s_axi_ar_bits_id;
-      end else begin
-        rId <= 8'h0;
-      end
-    end
-  end
-  always @(posedge aclk or posedge reset) begin
-    if (reset) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      rBurst <= 2'h0; // @[src/main/scala/axi/ReadEngine.scala 100:37 106:29 93:38]
-    end else if (2'h0 == state) begin // @[src/main/scala/axi/ReadEngine.scala 69:29]
-      if (s_axi_ar_valid) begin
-        rBurst <= s_axi_ar_bits_burst;
-      end else begin
-        rBurst <= 2'h0;
-      end
-    end
-  end
-  always @(posedge aclk or posedge reset) begin
-    if (reset) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      rSize <= 3'h0; // @[src/main/scala/axi/ReadEngine.scala 101:37 107:29 93:38]
-    end else if (2'h0 == state) begin // @[src/main/scala/axi/ReadEngine.scala 70:28]
-      if (s_axi_ar_valid) begin
-        rSize <= s_axi_ar_bits_size;
-      end else begin
-        rSize <= 3'h0;
-      end
-    end
-  end
-  always @(posedge aclk or posedge reset) begin
-    if (reset) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      leftLen <= 8'h0; // @[src/main/scala/axi/ReadEngine.scala 73:30 93:38 99:37]
-    end else if (2'h0 == state) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      if (s_axi_ar_valid) begin
-        leftLen <= s_axi_ar_bits_len;
-      end
-    end else if (!(2'h1 == state)) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      if (2'h2 == state) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-        if (~ready) begin
-          leftLen <= _leftLen_T_2;
-        end else begin
-          leftLen <= _GEN_22;
+    `endif
+    `endif // SYNTHESIS
+    `ifndef SYNTHESIS
+    `ifdef STOP_COND
+      if (`STOP_COND) begin
+    `endif
+        if (~(~returning | responses_io_enq_ready) & ~_T_1) begin
+          $fatal; // @[src/main/scala/axi/ReadEngine.scala 76:11]
         end
-      end else if (2'h3 == state) begin // @[src/main/scala/axi/ReadEngine.scala 73:30]
-        leftLen <= _GEN_29;
+    `ifdef STOP_COND
       end
+    `endif
+    `endif // SYNTHESIS
+  end
+  always @(posedge aclk or posedge _T_1) begin
+    if (_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 72:49]
+      active <= 1'h0; // @[src/main/scala/axi/ReadEngine.scala 73:14]
+    end else if (responseAccepted & s_axi_r_bits_last) begin
+      active <= 1'h0;
+    end else begin
+      active <= _GEN_1;
     end
   end
-  always @(posedge aclk or posedge reset) begin
-    if (reset) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      iAddr <= 16'h0; // @[src/main/scala/axi/ReadEngine.scala 78:34 93:38 98:37]
-    end else if (2'h0 == state) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      if (s_axi_ar_valid) begin // @[src/main/scala/axi/ReadEngine.scala 111:29]
-        iAddr <= s_axi_ar_bits_addr; // @[src/main/scala/axi/ReadEngine.scala 112:43 116:33 122:33]
-      end
-    end else if (2'h1 == state) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      if (ready) begin // @[src/main/scala/axi/ReadEngine.scala 134:30]
-        if (!(leftLen == 8'h0)) begin // @[src/main/scala/axi/ReadEngine.scala 138:29]
-          iAddr <= NextAddr;
-        end
-      end
-    end else if (2'h2 == state) begin // @[src/main/scala/axi/ReadEngine.scala 91:23]
-      if (!(~ready)) begin
-        iAddr <= _GEN_21;
-      end
-    end else if (2'h3 == state) begin // @[src/main/scala/axi/ReadEngine.scala 78:34]
-      iAddr <= _GEN_30;
+  always @(posedge aclk or posedge _T_1) begin
+    if (_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 54:25]
+      burstId <= 8'h0; // @[src/main/scala/axi/ReadEngine.scala 56:15]
+    end else if (_T_2) begin // @[src/main/scala/axi/ReadEngine.scala 25:26]
+      burstId <= s_axi_ar_bits_id;
     end
   end
-  always @(posedge aclk or posedge reset) begin
-    if (reset) begin // @[src/main/scala/axi/ReadEngine.scala 212:27]
-      Stream_data_reg <= 128'h0; // @[src/main/scala/axi/ReadEngine.scala 214:33]
-    end else if (~SpadState) begin
-      Stream_data_reg <= data;
+  always @(posedge aclk or posedge _T_1) begin
+    if (_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 54:25]
+      burstLen <= 8'h0; // @[src/main/scala/axi/ReadEngine.scala 57:16]
+    end else if (_T_2) begin // @[src/main/scala/axi/ReadEngine.scala 26:27]
+      burstLen <= s_axi_ar_bits_len;
     end
   end
-  always @(posedge aclk or posedge reset) begin
-    if (reset) begin // @[src/main/scala/axi/ReadEngine.scala 212:27]
-      SpadState <= 1'h0; // @[src/main/scala/axi/ReadEngine.scala 216:60 217:31]
-    end else if (~SpadState) begin // @[src/main/scala/axi/ReadEngine.scala 212:27]
-      if (_s_axi_ar_ready_T | _valid_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 225:39]
-        SpadState <= 1'h0; // @[src/main/scala/axi/ReadEngine.scala 226:31]
+  always @(posedge aclk or posedge _T_1) begin
+    if (_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 54:25]
+      burstSize <= 3'h0; // @[src/main/scala/axi/ReadEngine.scala 58:17]
+    end else if (_T_2) begin // @[src/main/scala/axi/ReadEngine.scala 27:28]
+      burstSize <= s_axi_ar_bits_size;
+    end
+  end
+  always @(posedge aclk or posedge _T_1) begin
+    if (_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 54:25]
+      burstType <= 2'h0; // @[src/main/scala/axi/ReadEngine.scala 59:17]
+    end else if (_T_2) begin // @[src/main/scala/axi/ReadEngine.scala 28:28]
+      burstType <= s_axi_ar_bits_burst;
+    end
+  end
+  always @(posedge aclk or posedge _T_1) begin
+    if (_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 63:27]
+      requestAddr <= 16'h0; // @[src/main/scala/axi/ReadEngine.scala 65:31 66:21]
+    end else if (requestAccepted) begin
+      if (remaining != 9'h1) begin
+        requestAddr <= nextAddress_m_NextAddr;
       end else begin
-        SpadState <= _GEN_52; // @[src/main/scala/axi/ReadEngine.scala 228:42 229:31 211:32]
+        requestAddr <= _GEN_6;
       end
-    end else if (SpadState) begin // @[src/main/scala/axi/ReadEngine.scala 211:32]
-      if (_s_axi_ar_ready_T) begin
-        SpadState <= 1'h0;
-      end else if (s_axi_r_ready) begin
-        SpadState <= 1'h0;
+    end else begin
+      requestAddr <= _GEN_6;
+    end
+  end
+  always @(posedge aclk or posedge _T_1) begin
+    if (_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 63:27]
+      remaining <= 9'h0; // @[src/main/scala/axi/ReadEngine.scala 64:17]
+    end else if (requestAccepted) begin // @[src/main/scala/axi/ReadEngine.scala 54:25]
+      remaining <= _remaining_T_2; // @[src/main/scala/axi/ReadEngine.scala 61:17]
+    end else if (_T_2) begin // @[src/main/scala/axi/ReadEngine.scala 33:28]
+      remaining <= _remaining_T;
+    end
+  end
+  always @(posedge aclk or posedge _T_1) begin
+    if (_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 69:48]
+      occupied <= 2'h0; // @[src/main/scala/axi/ReadEngine.scala 70:22]
+    end else if (requestAccepted != responseAccepted) begin // @[src/main/scala/axi/ReadEngine.scala 37:27]
+      if (requestAccepted) begin
+        occupied <= _occupied_T_1;
+      end else begin
+        occupied <= _occupied_T_3;
       end
+    end
+  end
+  always @(posedge aclk or posedge _T_1) begin
+    if (_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 43:33]
+      returning <= 1'h0;
+    end else begin
+      returning <= valid & ready;
+    end
+  end
+  always @(posedge aclk or posedge _T_1) begin
+    if (_T_1) begin // @[src/main/scala/axi/ReadEngine.scala 46:34]
+      returningLast <= 1'h0; // @[src/main/scala/axi/ReadEngine.scala 46:34]
+    end else if (requestAccepted) begin // @[src/main/scala/axi/ReadEngine.scala 46:34]
+      returningLast <= remaining == 9'h1;
     end
   end
 // Register and memory initialization
@@ -2141,50 +2351,55 @@ initial begin
     `endif
 `ifdef RANDOMIZE_REG_INIT
   _RAND_0 = {1{`RANDOM}};
-  state = _RAND_0[1:0];
+  active = _RAND_0[0:0];
   _RAND_1 = {1{`RANDOM}};
-  spad_needed_len = _RAND_1[7:0];
+  burstId = _RAND_1[7:0];
   _RAND_2 = {1{`RANDOM}};
-  rId = _RAND_2[7:0];
+  burstLen = _RAND_2[7:0];
   _RAND_3 = {1{`RANDOM}};
-  rBurst = _RAND_3[1:0];
+  burstSize = _RAND_3[2:0];
   _RAND_4 = {1{`RANDOM}};
-  rSize = _RAND_4[2:0];
+  burstType = _RAND_4[1:0];
   _RAND_5 = {1{`RANDOM}};
-  leftLen = _RAND_5[7:0];
+  requestAddr = _RAND_5[15:0];
   _RAND_6 = {1{`RANDOM}};
-  iAddr = _RAND_6[15:0];
-  _RAND_7 = {4{`RANDOM}};
-  Stream_data_reg = _RAND_7[127:0];
+  remaining = _RAND_6[8:0];
+  _RAND_7 = {1{`RANDOM}};
+  occupied = _RAND_7[1:0];
   _RAND_8 = {1{`RANDOM}};
-  SpadState = _RAND_8[0:0];
+  returning = _RAND_8[0:0];
+  _RAND_9 = {1{`RANDOM}};
+  returningLast = _RAND_9[0:0];
 `endif // RANDOMIZE_REG_INIT
-  if (reset) begin
-    state = 2'h0;
+  if (_T_1) begin
+    active = 1'h0;
   end
-  if (reset) begin
-    spad_needed_len = 8'h0;
+  if (_T_1) begin
+    burstId = 8'h0;
   end
-  if (reset) begin
-    rId = 8'h0;
+  if (_T_1) begin
+    burstLen = 8'h0;
   end
-  if (reset) begin
-    rBurst = 2'h0;
+  if (_T_1) begin
+    burstSize = 3'h0;
   end
-  if (reset) begin
-    rSize = 3'h0;
+  if (_T_1) begin
+    burstType = 2'h0;
   end
-  if (reset) begin
-    leftLen = 8'h0;
+  if (_T_1) begin
+    requestAddr = 16'h0;
   end
-  if (reset) begin
-    iAddr = 16'h0;
+  if (_T_1) begin
+    remaining = 9'h0;
   end
-  if (reset) begin
-    Stream_data_reg = 128'h0;
+  if (_T_1) begin
+    occupied = 2'h0;
   end
-  if (reset) begin
-    SpadState = 1'h0;
+  if (_T_1) begin
+    returning = 1'h0;
+  end
+  if (_T_1) begin
+    returningLast = 1'h0;
   end
   `endif // RANDOMIZE
 end // initial
@@ -2194,326 +2409,337 @@ end // initial
 `endif // SYNTHESIS
 endmodule
 module SramArbiter(
-  input        wrvalid, // @[src/main/scala/axi/SramArbiter.scala 15:25]
-  output       wrready, // @[src/main/scala/axi/SramArbiter.scala 16:25]
-  input        rdvalid, // @[src/main/scala/axi/SramArbiter.scala 19:25]
-  output       rdready, // @[src/main/scala/axi/SramArbiter.scala 20:25]
-  input  [3:0] wr_cs, // @[src/main/scala/axi/SramArbiter.scala 24:25]
-  input  [3:0] rd_cs // @[src/main/scala/axi/SramArbiter.scala 25:25]
+  input   wrvalid, // @[src/main/scala/axi/SramArbiter.scala 7:19]
+  input   rdvalid, // @[src/main/scala/axi/SramArbiter.scala 9:19]
+  output  rdready, // @[src/main/scala/axi/SramArbiter.scala 10:19]
+  input   conflict // @[src/main/scala/axi/SramArbiter.scala 12:20]
 );
-  assign wrready = wr_cs == rd_cs & wrvalid & rdvalid | wrvalid; // @[src/main/scala/axi/SramArbiter.scala 90:72 91:17 95:17]
-  assign rdready = wr_cs == rd_cs & wrvalid & rdvalid ? 1'h0 : rdvalid; // @[src/main/scala/axi/SramArbiter.scala 90:72 92:17 96:17]
+  assign rdready = rdvalid & ~(wrvalid & conflict); // @[src/main/scala/axi/SramArbiter.scala 16:22]
 endmodule
 module AXI4Scratchpad(
   input          clock,
-  input          io_aclk, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_aresetn, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output         io_s_axi_aw_ready, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_s_axi_aw_valid, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_s_axi_aw_bits_id, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [15:0]  io_s_axi_aw_bits_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_s_axi_aw_bits_len, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [2:0]   io_s_axi_aw_bits_size, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [1:0]   io_s_axi_aw_bits_burst, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output         io_s_axi_w_ready, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_s_axi_w_valid, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [127:0] io_s_axi_w_bits_data, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [15:0]  io_s_axi_w_bits_strb, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_s_axi_w_bits_last, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_s_axi_b_ready, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output         io_s_axi_b_valid, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [7:0]   io_s_axi_b_bits_id, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output         io_s_axi_ar_ready, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_s_axi_ar_valid, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_s_axi_ar_bits_id, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [15:0]  io_s_axi_ar_bits_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_s_axi_ar_bits_len, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [2:0]   io_s_axi_ar_bits_size, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [1:0]   io_s_axi_ar_bits_burst, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_s_axi_r_ready, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output         io_s_axi_r_valid, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [7:0]   io_s_axi_r_bits_id, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [127:0] io_s_axi_r_bits_data, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output         io_s_axi_r_bits_last, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_0_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_0_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_0_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_0_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_0_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_1_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_1_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_1_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_1_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_1_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_2_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_2_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_2_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_2_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_2_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_3_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_3_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_3_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_3_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_3_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_4_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_4_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_4_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_4_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_4_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_5_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_5_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_5_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_5_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_5_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_6_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_6_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_6_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_6_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_6_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_7_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_7_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_7_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_7_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_7_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_8_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_8_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_8_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_8_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_8_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_9_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_9_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_9_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_9_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_9_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_10_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_10_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_10_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_10_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_10_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_srams_11_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [3:0]   io_srams_11_we, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [9:0]   io_srams_11_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [31:0]  io_srams_11_din, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [31:0]  io_srams_11_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_sram_last_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_sram_last_addr, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  output [127:0] io_sram_last_dout, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input          io_bcast_en, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [11:0]  io_bcast_bank_mask, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_0, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_1, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_2, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_3, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_4, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_5, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_6, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_7, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_8, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_9, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_10, // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
-  input  [7:0]   io_bcast_base_addr_11 // @[src/main/scala/axi/AxiScratchpad.scala 63:14]
+  input          io_aclk, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_aresetn, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output         io_s_axi_aw_ready, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_s_axi_aw_valid, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_s_axi_aw_bits_id, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [15:0]  io_s_axi_aw_bits_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_s_axi_aw_bits_len, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [2:0]   io_s_axi_aw_bits_size, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [1:0]   io_s_axi_aw_bits_burst, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output         io_s_axi_w_ready, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_s_axi_w_valid, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [127:0] io_s_axi_w_bits_data, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [15:0]  io_s_axi_w_bits_strb, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_s_axi_w_bits_last, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_s_axi_b_ready, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output         io_s_axi_b_valid, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [7:0]   io_s_axi_b_bits_id, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output         io_s_axi_ar_ready, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_s_axi_ar_valid, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_s_axi_ar_bits_id, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [15:0]  io_s_axi_ar_bits_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_s_axi_ar_bits_len, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [2:0]   io_s_axi_ar_bits_size, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [1:0]   io_s_axi_ar_bits_burst, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_s_axi_r_ready, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output         io_s_axi_r_valid, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [7:0]   io_s_axi_r_bits_id, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [127:0] io_s_axi_r_bits_data, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [1:0]   io_s_axi_r_bits_resp, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output         io_s_axi_r_bits_last, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_0_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_0_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_0_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_0_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_0_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_1_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_1_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_1_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_1_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_1_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_2_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_2_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_2_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_2_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_2_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_3_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_3_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_3_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_3_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_3_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_4_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_4_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_4_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_4_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_4_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_5_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_5_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_5_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_5_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_5_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_6_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_6_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_6_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_6_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_6_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_7_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_7_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_7_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_7_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_7_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_8_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_8_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_8_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_8_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_8_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_9_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_9_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_9_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_9_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_9_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_10_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_10_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_10_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_10_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_10_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_srams_11_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [3:0]   io_srams_11_we, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [9:0]   io_srams_11_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [31:0]  io_srams_11_din, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [31:0]  io_srams_11_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_sram_last_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_sram_last_addr, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  output [127:0] io_sram_last_dout, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input          io_bcast_en, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [11:0]  io_bcast_bank_mask, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_0, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_1, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_2, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_3, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_4, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_5, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_6, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_7, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_8, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_9, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_10, // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
+  input  [7:0]   io_bcast_base_addr_11 // @[src/main/scala/axi/AxiScratchpad.scala 64:14]
 );
 `ifdef RANDOMIZE_REG_INIT
   reg [31:0] _RAND_0;
   reg [31:0] _RAND_1;
 `endif // RANDOMIZE_REG_INIT
-  wire  TrueDualPortSRAMAsym_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_1_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_1_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_1_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_1_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_1_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_1_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_1_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_1_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_1_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_1_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_1_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_2_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_2_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_2_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_2_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_2_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_2_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_2_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_2_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_2_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_2_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_2_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_3_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_3_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_3_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_3_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_3_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_3_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_3_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_3_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_3_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_3_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_3_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_4_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_4_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_4_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_4_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_4_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_4_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_4_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_4_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_4_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_4_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_4_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_5_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_5_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_5_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_5_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_5_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_5_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_5_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_5_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_5_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_5_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_5_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_6_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_6_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_6_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_6_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_6_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_6_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_6_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_6_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_6_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_6_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_6_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_7_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_7_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_7_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_7_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_7_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_7_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_7_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_7_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_7_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_7_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_7_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_8_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_8_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_8_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_8_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_8_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_8_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_8_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_8_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_8_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_8_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_8_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_9_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_9_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_9_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_9_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_9_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_9_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_9_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_9_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_9_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_9_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_9_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_10_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_10_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_10_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_10_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_10_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_10_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_10_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_10_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_10_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_10_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_10_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_11_clock; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_11_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [15:0] TrueDualPortSRAMAsym_11_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [7:0] TrueDualPortSRAMAsym_11_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_11_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [127:0] TrueDualPortSRAMAsym_11_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAMAsym_11_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [3:0] TrueDualPortSRAMAsym_11_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [9:0] TrueDualPortSRAMAsym_11_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_11_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire [31:0] TrueDualPortSRAMAsym_11_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
-  wire  TrueDualPortSRAM_128_8_clock; // @[src/main/scala/axi/AxiScratchpad.scala 96:33]
-  wire  TrueDualPortSRAM_128_8_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 96:33]
-  wire [15:0] TrueDualPortSRAM_128_8_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 96:33]
-  wire [7:0] TrueDualPortSRAM_128_8_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 96:33]
-  wire [127:0] TrueDualPortSRAM_128_8_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 96:33]
-  wire [127:0] TrueDualPortSRAM_128_8_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 96:33]
-  wire  TrueDualPortSRAM_128_8_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 96:33]
-  wire [7:0] TrueDualPortSRAM_128_8_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 96:33]
-  wire [127:0] TrueDualPortSRAM_128_8_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 96:33]
-  wire  wrIE_aclk; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  wrIE_aresetn; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  wrIE_s_axi_aw_ready; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  wrIE_s_axi_aw_valid; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [7:0] wrIE_s_axi_aw_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [15:0] wrIE_s_axi_aw_bits_addr; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [7:0] wrIE_s_axi_aw_bits_len; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [2:0] wrIE_s_axi_aw_bits_size; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [1:0] wrIE_s_axi_aw_bits_burst; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  wrIE_s_axi_w_ready; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  wrIE_s_axi_w_valid; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [127:0] wrIE_s_axi_w_bits_data; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [15:0] wrIE_s_axi_w_bits_strb; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  wrIE_s_axi_w_bits_last; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  wrIE_s_axi_b_ready; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  wrIE_s_axi_b_valid; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [7:0] wrIE_s_axi_b_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  wrIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  wrIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [15:0] wrIE_addr; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [127:0] wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire [15:0] wrIE_strb; // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
-  wire  rdIE_aclk; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire  rdIE_aresetn; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire  rdIE_s_axi_ar_ready; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire  rdIE_s_axi_ar_valid; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire [7:0] rdIE_s_axi_ar_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire [15:0] rdIE_s_axi_ar_bits_addr; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire [7:0] rdIE_s_axi_ar_bits_len; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire [2:0] rdIE_s_axi_ar_bits_size; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire [1:0] rdIE_s_axi_ar_bits_burst; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire  rdIE_s_axi_r_ready; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire  rdIE_s_axi_r_valid; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire [7:0] rdIE_s_axi_r_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire [127:0] rdIE_s_axi_r_bits_data; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire  rdIE_s_axi_r_bits_last; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire  rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire  rdIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire [15:0] rdIE_addr; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire [127:0] rdIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
-  wire  arbiter_wrvalid; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
-  wire  arbiter_wrready; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
-  wire  arbiter_rdvalid; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
-  wire  arbiter_rdready; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
-  wire [3:0] arbiter_wr_cs; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
-  wire [3:0] arbiter_rd_cs; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
-  wire  asyncReset = ~io_aresetn; // @[src/main/scala/axi/AxiScratchpad.scala 112:40]
-  wire [3:0] wr_csel = wrIE_addr[15:12]; // @[src/main/scala/axi/AxiScratchpad.scala 136:34]
-  wire [7:0] wr_spad_addr = wrIE_addr[11:4]; // @[src/main/scala/axi/AxiScratchpad.scala 137:34]
-  wire [3:0] rd_csel = rdIE_addr[15:12]; // @[src/main/scala/axi/AxiScratchpad.scala 138:34]
-  wire [7:0] rd_spad_addr = rdIE_addr[11:4]; // @[src/main/scala/axi/AxiScratchpad.scala 139:34]
-  reg [7:0] bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 170:33]
-  wire  _T = ~io_bcast_en; // @[src/main/scala/axi/AxiScratchpad.scala 171:10]
-  wire  _T_1 = io_s_axi_w_valid & io_s_axi_w_ready; // @[src/main/scala/axi/AxiScratchpad.scala 173:33]
-  wire [7:0] _bcast_beat_cnt_T_1 = bcast_beat_cnt + 8'h1; // @[src/main/scala/axi/AxiScratchpad.scala 174:40]
-  reg [3:0] currentRdBank; // @[src/main/scala/axi/AxiScratchpad.scala 181:32]
+  wire  TrueDualPortSRAMAsym_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_1_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_1_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_1_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_1_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_1_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_1_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_1_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_1_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_1_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_1_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_1_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_2_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_2_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_2_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_2_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_2_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_2_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_2_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_2_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_2_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_2_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_2_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_3_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_3_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_3_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_3_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_3_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_3_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_3_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_3_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_3_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_3_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_3_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_4_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_4_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_4_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_4_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_4_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_4_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_4_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_4_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_4_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_4_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_4_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_5_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_5_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_5_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_5_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_5_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_5_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_5_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_5_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_5_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_5_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_5_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_6_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_6_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_6_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_6_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_6_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_6_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_6_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_6_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_6_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_6_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_6_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_7_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_7_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_7_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_7_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_7_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_7_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_7_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_7_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_7_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_7_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_7_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_8_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_8_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_8_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_8_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_8_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_8_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_8_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_8_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_8_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_8_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_8_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_9_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_9_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_9_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_9_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_9_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_9_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_9_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_9_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_9_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_9_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_9_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_10_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_10_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_10_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_10_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_10_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_10_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_10_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_10_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_10_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_10_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_10_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_11_clock; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_11_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [15:0] TrueDualPortSRAMAsym_11_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [7:0] TrueDualPortSRAMAsym_11_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_11_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [127:0] TrueDualPortSRAMAsym_11_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAMAsym_11_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [3:0] TrueDualPortSRAMAsym_11_io_b_we; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [9:0] TrueDualPortSRAMAsym_11_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_11_io_b_din; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire [31:0] TrueDualPortSRAMAsym_11_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
+  wire  TrueDualPortSRAM_128_8_clock; // @[src/main/scala/axi/AxiScratchpad.scala 97:33]
+  wire  TrueDualPortSRAM_128_8_io_a_en; // @[src/main/scala/axi/AxiScratchpad.scala 97:33]
+  wire [15:0] TrueDualPortSRAM_128_8_io_a_we; // @[src/main/scala/axi/AxiScratchpad.scala 97:33]
+  wire [7:0] TrueDualPortSRAM_128_8_io_a_addr; // @[src/main/scala/axi/AxiScratchpad.scala 97:33]
+  wire [127:0] TrueDualPortSRAM_128_8_io_a_din; // @[src/main/scala/axi/AxiScratchpad.scala 97:33]
+  wire [127:0] TrueDualPortSRAM_128_8_io_a_dout; // @[src/main/scala/axi/AxiScratchpad.scala 97:33]
+  wire  TrueDualPortSRAM_128_8_io_b_en; // @[src/main/scala/axi/AxiScratchpad.scala 97:33]
+  wire [7:0] TrueDualPortSRAM_128_8_io_b_addr; // @[src/main/scala/axi/AxiScratchpad.scala 97:33]
+  wire [127:0] TrueDualPortSRAM_128_8_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 97:33]
+  wire  wrIE_aclk; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  wrIE_aresetn; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  wrIE_s_axi_aw_ready; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  wrIE_s_axi_aw_valid; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [7:0] wrIE_s_axi_aw_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [15:0] wrIE_s_axi_aw_bits_addr; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [7:0] wrIE_s_axi_aw_bits_len; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [2:0] wrIE_s_axi_aw_bits_size; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [1:0] wrIE_s_axi_aw_bits_burst; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  wrIE_s_axi_w_ready; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  wrIE_s_axi_w_valid; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [127:0] wrIE_s_axi_w_bits_data; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [15:0] wrIE_s_axi_w_bits_strb; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  wrIE_s_axi_w_bits_last; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  wrIE_s_axi_b_ready; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  wrIE_s_axi_b_valid; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [7:0] wrIE_s_axi_b_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  wrIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  wrIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [15:0] wrIE_addr; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [127:0] wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire [15:0] wrIE_strb; // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  wire  rdIE_aclk; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire  rdIE_aresetn; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire  rdIE_s_axi_ar_ready; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire  rdIE_s_axi_ar_valid; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire [7:0] rdIE_s_axi_ar_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire [15:0] rdIE_s_axi_ar_bits_addr; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire [7:0] rdIE_s_axi_ar_bits_len; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire [2:0] rdIE_s_axi_ar_bits_size; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire [1:0] rdIE_s_axi_ar_bits_burst; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire  rdIE_s_axi_r_ready; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire  rdIE_s_axi_r_valid; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire [7:0] rdIE_s_axi_r_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire [127:0] rdIE_s_axi_r_bits_data; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire [1:0] rdIE_s_axi_r_bits_resp; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire  rdIE_s_axi_r_bits_last; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire  rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire  rdIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire [15:0] rdIE_addr; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire [127:0] rdIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  wire  arbiter_wrvalid; // @[src/main/scala/axi/AxiScratchpad.scala 132:25]
+  wire  arbiter_rdvalid; // @[src/main/scala/axi/AxiScratchpad.scala 132:25]
+  wire  arbiter_rdready; // @[src/main/scala/axi/AxiScratchpad.scala 132:25]
+  wire  arbiter_conflict; // @[src/main/scala/axi/AxiScratchpad.scala 132:25]
+  wire  asyncReset = ~io_aresetn; // @[src/main/scala/axi/AxiScratchpad.scala 113:40]
+  wire [3:0] wr_csel = wrIE_addr[15:12]; // @[src/main/scala/axi/AxiScratchpad.scala 137:34]
+  wire [7:0] wr_spad_addr = wrIE_addr[11:4]; // @[src/main/scala/axi/AxiScratchpad.scala 138:34]
+  wire [3:0] rd_csel = rdIE_addr[15:12]; // @[src/main/scala/axi/AxiScratchpad.scala 139:34]
+  wire [7:0] rd_spad_addr = rdIE_addr[11:4]; // @[src/main/scala/axi/AxiScratchpad.scala 140:34]
+  wire  wrCfgSel = wr_csel >= 4'hc & wr_csel <= 4'hc; // @[src/main/scala/axi/AxiScratchpad.scala 158:42]
+  wire  rdCfgSel = rd_csel >= 4'hc & rd_csel <= 4'hc; // @[src/main/scala/axi/AxiScratchpad.scala 159:42]
+  wire  rdDataSel = rd_csel < 4'hc; // @[src/main/scala/axi/AxiScratchpad.scala 160:29]
+  wire  normalConflict = rdDataSel & wr_csel == rd_csel | wrCfgSel & rdCfgSel; // @[src/main/scala/axi/AxiScratchpad.scala 164:61]
+  wire  _broadcastConflict_T_15 = 4'h1 == rd_csel ? io_bcast_bank_mask[1] : 4'h0 == rd_csel & io_bcast_bank_mask[0]; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  wire  _broadcastConflict_T_17 = 4'h2 == rd_csel ? io_bcast_bank_mask[2] : _broadcastConflict_T_15; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  wire  _broadcastConflict_T_19 = 4'h3 == rd_csel ? io_bcast_bank_mask[3] : _broadcastConflict_T_17; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  wire  _broadcastConflict_T_21 = 4'h4 == rd_csel ? io_bcast_bank_mask[4] : _broadcastConflict_T_19; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  wire  _broadcastConflict_T_23 = 4'h5 == rd_csel ? io_bcast_bank_mask[5] : _broadcastConflict_T_21; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  wire  _broadcastConflict_T_25 = 4'h6 == rd_csel ? io_bcast_bank_mask[6] : _broadcastConflict_T_23; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  wire  _broadcastConflict_T_27 = 4'h7 == rd_csel ? io_bcast_bank_mask[7] : _broadcastConflict_T_25; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  wire  _broadcastConflict_T_29 = 4'h8 == rd_csel ? io_bcast_bank_mask[8] : _broadcastConflict_T_27; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  wire  _broadcastConflict_T_31 = 4'h9 == rd_csel ? io_bcast_bank_mask[9] : _broadcastConflict_T_29; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  wire  _broadcastConflict_T_33 = 4'ha == rd_csel ? io_bcast_bank_mask[10] : _broadcastConflict_T_31; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  wire  broadcastConflict = 4'hb == rd_csel ? io_bcast_bank_mask[11] : _broadcastConflict_T_33; // @[src/main/scala/axi/AxiScratchpad.scala 165:56]
+  reg [7:0] bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 175:33]
+  wire  _T = ~io_bcast_en; // @[src/main/scala/axi/AxiScratchpad.scala 176:10]
+  wire [7:0] _bcast_beat_cnt_T_1 = bcast_beat_cnt + 8'h1; // @[src/main/scala/axi/AxiScratchpad.scala 179:40]
+  reg [3:0] currentRdBank; // @[src/main/scala/axi/AxiScratchpad.scala 186:34]
   wire [127:0] _rdIE_data_T_1 = 4'h0 == currentRdBank ? TrueDualPortSRAMAsym_io_a_dout : 128'h0; // @[src/main/scala/chisel3/util/Mux.scala 77:13]
   wire [127:0] _rdIE_data_T_3 = 4'h1 == currentRdBank ? TrueDualPortSRAMAsym_1_io_a_dout : _rdIE_data_T_1; // @[src/main/scala/chisel3/util/Mux.scala 77:13]
   wire [127:0] _rdIE_data_T_5 = 4'h2 == currentRdBank ? TrueDualPortSRAMAsym_2_io_a_dout : _rdIE_data_T_3; // @[src/main/scala/chisel3/util/Mux.scala 77:13]
@@ -2526,137 +2752,134 @@ module AXI4Scratchpad(
   wire [127:0] _rdIE_data_T_19 = 4'h9 == currentRdBank ? TrueDualPortSRAMAsym_9_io_a_dout : _rdIE_data_T_17; // @[src/main/scala/chisel3/util/Mux.scala 77:13]
   wire [127:0] _rdIE_data_T_21 = 4'ha == currentRdBank ? TrueDualPortSRAMAsym_10_io_a_dout : _rdIE_data_T_19; // @[src/main/scala/chisel3/util/Mux.scala 77:13]
   wire [127:0] _rdIE_data_T_23 = 4'hb == currentRdBank ? TrueDualPortSRAMAsym_11_io_a_dout : _rdIE_data_T_21; // @[src/main/scala/chisel3/util/Mux.scala 77:13]
-  wire  _wr_bank_hit_T_1 = wr_csel == 4'h0; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit = io_bcast_en ? io_bcast_bank_mask[0] : _wr_bank_hit_T_1; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_1 = io_bcast_base_addr_0 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank = io_bcast_en ? _wr_addr_bank_T_1 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _wr_data_valid_T_1 = wrIE_ready & wrIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 207:42]
-  wire  wr_data_valid = io_bcast_en ? _T_1 : _wr_data_valid_T_1; // @[src/main/scala/axi/AxiScratchpad.scala 205:30]
-  wire  _en_T_1 = rd_csel == 4'h0; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en = wr_bank_hit & wr_data_valid | rd_csel == 4'h0 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we = wr_data_valid & wr_bank_hit; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  _re_T = rdIE_ready & rdIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 210:27]
-  wire  re = rdIE_ready & rdIE_valid & _en_T_1; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_5 = we ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_6 = wrIE_strb & _T_5; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_3 = wr_csel == 4'h1; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_1 = io_bcast_en ? io_bcast_bank_mask[1] : _wr_bank_hit_T_3; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_3 = io_bcast_base_addr_1 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_1 = io_bcast_en ? _wr_addr_bank_T_3 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_4 = rd_csel == 4'h1; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_1 = wr_bank_hit_1 & wr_data_valid | rd_csel == 4'h1 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_1 = wr_data_valid & wr_bank_hit_1; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_1 = rdIE_ready & rdIE_valid & _en_T_4; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_10 = we_1 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_11 = wrIE_strb & _T_10; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_5 = wr_csel == 4'h2; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_2 = io_bcast_en ? io_bcast_bank_mask[2] : _wr_bank_hit_T_5; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_5 = io_bcast_base_addr_2 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_2 = io_bcast_en ? _wr_addr_bank_T_5 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_7 = rd_csel == 4'h2; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_2 = wr_bank_hit_2 & wr_data_valid | rd_csel == 4'h2 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_2 = wr_data_valid & wr_bank_hit_2; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_2 = rdIE_ready & rdIE_valid & _en_T_7; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_15 = we_2 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_16 = wrIE_strb & _T_15; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_7 = wr_csel == 4'h3; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_3 = io_bcast_en ? io_bcast_bank_mask[3] : _wr_bank_hit_T_7; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_7 = io_bcast_base_addr_3 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_3 = io_bcast_en ? _wr_addr_bank_T_7 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_10 = rd_csel == 4'h3; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_3 = wr_bank_hit_3 & wr_data_valid | rd_csel == 4'h3 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_3 = wr_data_valid & wr_bank_hit_3; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_3 = rdIE_ready & rdIE_valid & _en_T_10; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_20 = we_3 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_21 = wrIE_strb & _T_20; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_9 = wr_csel == 4'h4; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_4 = io_bcast_en ? io_bcast_bank_mask[4] : _wr_bank_hit_T_9; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_9 = io_bcast_base_addr_4 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_4 = io_bcast_en ? _wr_addr_bank_T_9 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_13 = rd_csel == 4'h4; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_4 = wr_bank_hit_4 & wr_data_valid | rd_csel == 4'h4 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_4 = wr_data_valid & wr_bank_hit_4; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_4 = rdIE_ready & rdIE_valid & _en_T_13; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_25 = we_4 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_26 = wrIE_strb & _T_25; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_11 = wr_csel == 4'h5; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_5 = io_bcast_en ? io_bcast_bank_mask[5] : _wr_bank_hit_T_11; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_11 = io_bcast_base_addr_5 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_5 = io_bcast_en ? _wr_addr_bank_T_11 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_16 = rd_csel == 4'h5; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_5 = wr_bank_hit_5 & wr_data_valid | rd_csel == 4'h5 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_5 = wr_data_valid & wr_bank_hit_5; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_5 = rdIE_ready & rdIE_valid & _en_T_16; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_30 = we_5 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_31 = wrIE_strb & _T_30; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_13 = wr_csel == 4'h6; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_6 = io_bcast_en ? io_bcast_bank_mask[6] : _wr_bank_hit_T_13; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_13 = io_bcast_base_addr_6 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_6 = io_bcast_en ? _wr_addr_bank_T_13 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_19 = rd_csel == 4'h6; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_6 = wr_bank_hit_6 & wr_data_valid | rd_csel == 4'h6 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_6 = wr_data_valid & wr_bank_hit_6; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_6 = rdIE_ready & rdIE_valid & _en_T_19; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_35 = we_6 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_36 = wrIE_strb & _T_35; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_15 = wr_csel == 4'h7; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_7 = io_bcast_en ? io_bcast_bank_mask[7] : _wr_bank_hit_T_15; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_15 = io_bcast_base_addr_7 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_7 = io_bcast_en ? _wr_addr_bank_T_15 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_22 = rd_csel == 4'h7; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_7 = wr_bank_hit_7 & wr_data_valid | rd_csel == 4'h7 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_7 = wr_data_valid & wr_bank_hit_7; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_7 = rdIE_ready & rdIE_valid & _en_T_22; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_40 = we_7 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_41 = wrIE_strb & _T_40; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_17 = wr_csel == 4'h8; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_8 = io_bcast_en ? io_bcast_bank_mask[8] : _wr_bank_hit_T_17; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_17 = io_bcast_base_addr_8 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_8 = io_bcast_en ? _wr_addr_bank_T_17 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_25 = rd_csel == 4'h8; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_8 = wr_bank_hit_8 & wr_data_valid | rd_csel == 4'h8 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_8 = wr_data_valid & wr_bank_hit_8; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_8 = rdIE_ready & rdIE_valid & _en_T_25; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_45 = we_8 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_46 = wrIE_strb & _T_45; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_19 = wr_csel == 4'h9; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_9 = io_bcast_en ? io_bcast_bank_mask[9] : _wr_bank_hit_T_19; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_19 = io_bcast_base_addr_9 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_9 = io_bcast_en ? _wr_addr_bank_T_19 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_28 = rd_csel == 4'h9; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_9 = wr_bank_hit_9 & wr_data_valid | rd_csel == 4'h9 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_9 = wr_data_valid & wr_bank_hit_9; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_9 = rdIE_ready & rdIE_valid & _en_T_28; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_50 = we_9 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_51 = wrIE_strb & _T_50; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_21 = wr_csel == 4'ha; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_10 = io_bcast_en ? io_bcast_bank_mask[10] : _wr_bank_hit_T_21; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_21 = io_bcast_base_addr_10 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_10 = io_bcast_en ? _wr_addr_bank_T_21 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_31 = rd_csel == 4'ha; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_10 = wr_bank_hit_10 & wr_data_valid | rd_csel == 4'ha & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_10 = wr_data_valid & wr_bank_hit_10; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_10 = rdIE_ready & rdIE_valid & _en_T_31; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_55 = we_10 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_56 = wrIE_strb & _T_55; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  _wr_bank_hit_T_23 = wr_csel == 4'hb; // @[src/main/scala/axi/AxiScratchpad.scala 195:37]
-  wire  wr_bank_hit_11 = io_bcast_en ? io_bcast_bank_mask[11] : _wr_bank_hit_T_23; // @[src/main/scala/axi/AxiScratchpad.scala 193:28]
-  wire [7:0] _wr_addr_bank_T_23 = io_bcast_base_addr_11 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 200:52]
-  wire [7:0] wr_addr_bank_11 = io_bcast_en ? _wr_addr_bank_T_23 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 199:29]
-  wire  _en_T_34 = rd_csel == 4'hb; // @[src/main/scala/axi/AxiScratchpad.scala 208:57]
-  wire  en_11 = wr_bank_hit_11 & wr_data_valid | rd_csel == 4'hb & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 208:46]
-  wire  we_11 = wr_data_valid & wr_bank_hit_11; // @[src/main/scala/axi/AxiScratchpad.scala 209:30]
-  wire  re_11 = rdIE_ready & rdIE_valid & _en_T_34; // @[src/main/scala/axi/AxiScratchpad.scala 210:40]
-  wire [15:0] _T_60 = we_11 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 215:57]
-  wire [15:0] _T_61 = wrIE_strb & _T_60; // @[src/main/scala/axi/AxiScratchpad.scala 215:51]
-  wire  wrCfgSel = wr_csel >= 4'hc & wr_csel <= 4'hc; // @[src/main/scala/axi/AxiScratchpad.scala 238:42]
-  wire  rdCfgSel = rd_csel >= 4'hc & rd_csel <= 4'hc; // @[src/main/scala/axi/AxiScratchpad.scala 239:42]
-  wire  en_last = _T & wrCfgSel & wrIE_ready | rdCfgSel & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 245:58]
-  wire  we_last = _T & wrIE_ready & wrIE_valid & wrCfgSel; // @[src/main/scala/axi/AxiScratchpad.scala 246:58]
-  wire  re_last = _re_T & rdCfgSel; // @[src/main/scala/axi/AxiScratchpad.scala 247:43]
-  wire [15:0] _T_65 = we_last ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 255:66]
-  wire [15:0] _T_66 = wrIE_strb & _T_65; // @[src/main/scala/axi/AxiScratchpad.scala 255:60]
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  wire  _wr_bank_hit_T_1 = wr_csel == 4'h0; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit = io_bcast_en ? io_bcast_bank_mask[0] : _wr_bank_hit_T_1; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_1 = io_bcast_base_addr_0 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank = io_bcast_en ? _wr_addr_bank_T_1 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  wr_data_valid = wrIE_ready & wrIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 209:38]
+  wire  _en_T_1 = rd_csel == 4'h0; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en = wr_bank_hit & wr_data_valid | rd_csel == 4'h0 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we = wr_data_valid & wr_bank_hit; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  _re_T = rdIE_ready & rdIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 212:27]
+  wire  re = rdIE_ready & rdIE_valid & _en_T_1; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_5 = we ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_6 = wrIE_strb & _T_5; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_3 = wr_csel == 4'h1; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_1 = io_bcast_en ? io_bcast_bank_mask[1] : _wr_bank_hit_T_3; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_3 = io_bcast_base_addr_1 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_1 = io_bcast_en ? _wr_addr_bank_T_3 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_4 = rd_csel == 4'h1; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_1 = wr_bank_hit_1 & wr_data_valid | rd_csel == 4'h1 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_1 = wr_data_valid & wr_bank_hit_1; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_1 = rdIE_ready & rdIE_valid & _en_T_4; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_10 = we_1 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_11 = wrIE_strb & _T_10; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_5 = wr_csel == 4'h2; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_2 = io_bcast_en ? io_bcast_bank_mask[2] : _wr_bank_hit_T_5; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_5 = io_bcast_base_addr_2 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_2 = io_bcast_en ? _wr_addr_bank_T_5 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_7 = rd_csel == 4'h2; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_2 = wr_bank_hit_2 & wr_data_valid | rd_csel == 4'h2 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_2 = wr_data_valid & wr_bank_hit_2; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_2 = rdIE_ready & rdIE_valid & _en_T_7; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_15 = we_2 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_16 = wrIE_strb & _T_15; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_7 = wr_csel == 4'h3; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_3 = io_bcast_en ? io_bcast_bank_mask[3] : _wr_bank_hit_T_7; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_7 = io_bcast_base_addr_3 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_3 = io_bcast_en ? _wr_addr_bank_T_7 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_10 = rd_csel == 4'h3; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_3 = wr_bank_hit_3 & wr_data_valid | rd_csel == 4'h3 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_3 = wr_data_valid & wr_bank_hit_3; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_3 = rdIE_ready & rdIE_valid & _en_T_10; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_20 = we_3 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_21 = wrIE_strb & _T_20; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_9 = wr_csel == 4'h4; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_4 = io_bcast_en ? io_bcast_bank_mask[4] : _wr_bank_hit_T_9; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_9 = io_bcast_base_addr_4 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_4 = io_bcast_en ? _wr_addr_bank_T_9 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_13 = rd_csel == 4'h4; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_4 = wr_bank_hit_4 & wr_data_valid | rd_csel == 4'h4 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_4 = wr_data_valid & wr_bank_hit_4; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_4 = rdIE_ready & rdIE_valid & _en_T_13; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_25 = we_4 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_26 = wrIE_strb & _T_25; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_11 = wr_csel == 4'h5; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_5 = io_bcast_en ? io_bcast_bank_mask[5] : _wr_bank_hit_T_11; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_11 = io_bcast_base_addr_5 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_5 = io_bcast_en ? _wr_addr_bank_T_11 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_16 = rd_csel == 4'h5; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_5 = wr_bank_hit_5 & wr_data_valid | rd_csel == 4'h5 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_5 = wr_data_valid & wr_bank_hit_5; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_5 = rdIE_ready & rdIE_valid & _en_T_16; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_30 = we_5 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_31 = wrIE_strb & _T_30; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_13 = wr_csel == 4'h6; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_6 = io_bcast_en ? io_bcast_bank_mask[6] : _wr_bank_hit_T_13; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_13 = io_bcast_base_addr_6 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_6 = io_bcast_en ? _wr_addr_bank_T_13 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_19 = rd_csel == 4'h6; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_6 = wr_bank_hit_6 & wr_data_valid | rd_csel == 4'h6 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_6 = wr_data_valid & wr_bank_hit_6; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_6 = rdIE_ready & rdIE_valid & _en_T_19; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_35 = we_6 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_36 = wrIE_strb & _T_35; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_15 = wr_csel == 4'h7; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_7 = io_bcast_en ? io_bcast_bank_mask[7] : _wr_bank_hit_T_15; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_15 = io_bcast_base_addr_7 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_7 = io_bcast_en ? _wr_addr_bank_T_15 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_22 = rd_csel == 4'h7; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_7 = wr_bank_hit_7 & wr_data_valid | rd_csel == 4'h7 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_7 = wr_data_valid & wr_bank_hit_7; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_7 = rdIE_ready & rdIE_valid & _en_T_22; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_40 = we_7 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_41 = wrIE_strb & _T_40; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_17 = wr_csel == 4'h8; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_8 = io_bcast_en ? io_bcast_bank_mask[8] : _wr_bank_hit_T_17; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_17 = io_bcast_base_addr_8 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_8 = io_bcast_en ? _wr_addr_bank_T_17 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_25 = rd_csel == 4'h8; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_8 = wr_bank_hit_8 & wr_data_valid | rd_csel == 4'h8 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_8 = wr_data_valid & wr_bank_hit_8; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_8 = rdIE_ready & rdIE_valid & _en_T_25; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_45 = we_8 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_46 = wrIE_strb & _T_45; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_19 = wr_csel == 4'h9; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_9 = io_bcast_en ? io_bcast_bank_mask[9] : _wr_bank_hit_T_19; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_19 = io_bcast_base_addr_9 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_9 = io_bcast_en ? _wr_addr_bank_T_19 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_28 = rd_csel == 4'h9; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_9 = wr_bank_hit_9 & wr_data_valid | rd_csel == 4'h9 & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_9 = wr_data_valid & wr_bank_hit_9; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_9 = rdIE_ready & rdIE_valid & _en_T_28; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_50 = we_9 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_51 = wrIE_strb & _T_50; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_21 = wr_csel == 4'ha; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_10 = io_bcast_en ? io_bcast_bank_mask[10] : _wr_bank_hit_T_21; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_21 = io_bcast_base_addr_10 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_10 = io_bcast_en ? _wr_addr_bank_T_21 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_31 = rd_csel == 4'ha; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_10 = wr_bank_hit_10 & wr_data_valid | rd_csel == 4'ha & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_10 = wr_data_valid & wr_bank_hit_10; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_10 = rdIE_ready & rdIE_valid & _en_T_31; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_55 = we_10 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_56 = wrIE_strb & _T_55; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  _wr_bank_hit_T_23 = wr_csel == 4'hb; // @[src/main/scala/axi/AxiScratchpad.scala 200:37]
+  wire  wr_bank_hit_11 = io_bcast_en ? io_bcast_bank_mask[11] : _wr_bank_hit_T_23; // @[src/main/scala/axi/AxiScratchpad.scala 198:28]
+  wire [7:0] _wr_addr_bank_T_23 = io_bcast_base_addr_11 + bcast_beat_cnt; // @[src/main/scala/axi/AxiScratchpad.scala 205:52]
+  wire [7:0] wr_addr_bank_11 = io_bcast_en ? _wr_addr_bank_T_23 : wr_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 204:29]
+  wire  _en_T_34 = rd_csel == 4'hb; // @[src/main/scala/axi/AxiScratchpad.scala 210:57]
+  wire  en_11 = wr_bank_hit_11 & wr_data_valid | rd_csel == 4'hb & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 210:46]
+  wire  we_11 = wr_data_valid & wr_bank_hit_11; // @[src/main/scala/axi/AxiScratchpad.scala 211:30]
+  wire  re_11 = rdIE_ready & rdIE_valid & _en_T_34; // @[src/main/scala/axi/AxiScratchpad.scala 212:40]
+  wire [15:0] _T_60 = we_11 ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 217:57]
+  wire [15:0] _T_61 = wrIE_strb & _T_60; // @[src/main/scala/axi/AxiScratchpad.scala 217:51]
+  wire  en_last = _T & wrCfgSel & wrIE_ready | rdCfgSel & rdIE_ready; // @[src/main/scala/axi/AxiScratchpad.scala 243:58]
+  wire  we_last = _T & wrIE_ready & wrIE_valid & wrCfgSel; // @[src/main/scala/axi/AxiScratchpad.scala 244:58]
+  wire  re_last = _re_T & rdCfgSel; // @[src/main/scala/axi/AxiScratchpad.scala 245:43]
+  wire [15:0] _T_65 = we_last ? 16'hffff : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 253:66]
+  wire [15:0] _T_66 = wrIE_strb & _T_65; // @[src/main/scala/axi/AxiScratchpad.scala 253:60]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_clock),
     .io_a_en(TrueDualPortSRAMAsym_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_io_a_we),
@@ -2669,7 +2892,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_1 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_1 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_1_clock),
     .io_a_en(TrueDualPortSRAMAsym_1_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_1_io_a_we),
@@ -2682,7 +2905,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_1_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_1_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_2 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_2 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_2_clock),
     .io_a_en(TrueDualPortSRAMAsym_2_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_2_io_a_we),
@@ -2695,7 +2918,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_2_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_2_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_3 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_3 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_3_clock),
     .io_a_en(TrueDualPortSRAMAsym_3_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_3_io_a_we),
@@ -2708,7 +2931,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_3_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_3_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_4 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_4 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_4_clock),
     .io_a_en(TrueDualPortSRAMAsym_4_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_4_io_a_we),
@@ -2721,7 +2944,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_4_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_4_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_5 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_5 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_5_clock),
     .io_a_en(TrueDualPortSRAMAsym_5_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_5_io_a_we),
@@ -2734,7 +2957,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_5_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_5_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_6 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_6 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_6_clock),
     .io_a_en(TrueDualPortSRAMAsym_6_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_6_io_a_we),
@@ -2747,7 +2970,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_6_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_6_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_7 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_7 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_7_clock),
     .io_a_en(TrueDualPortSRAMAsym_7_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_7_io_a_we),
@@ -2760,7 +2983,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_7_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_7_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_8 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_8 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_8_clock),
     .io_a_en(TrueDualPortSRAMAsym_8_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_8_io_a_we),
@@ -2773,7 +2996,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_8_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_8_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_9 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_9 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_9_clock),
     .io_a_en(TrueDualPortSRAMAsym_9_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_9_io_a_we),
@@ -2786,7 +3009,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_9_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_9_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_10 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_10 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_10_clock),
     .io_a_en(TrueDualPortSRAMAsym_10_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_10_io_a_we),
@@ -2799,7 +3022,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_10_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_10_io_b_dout)
   );
-  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_11 ( // @[src/main/scala/axi/AxiScratchpad.scala 89:11]
+  TrueDualPortSRAMAsym TrueDualPortSRAMAsym_11 ( // @[src/main/scala/axi/AxiScratchpad.scala 90:11]
     .clock(TrueDualPortSRAMAsym_11_clock),
     .io_a_en(TrueDualPortSRAMAsym_11_io_a_en),
     .io_a_we(TrueDualPortSRAMAsym_11_io_a_we),
@@ -2812,7 +3035,7 @@ module AXI4Scratchpad(
     .io_b_din(TrueDualPortSRAMAsym_11_io_b_din),
     .io_b_dout(TrueDualPortSRAMAsym_11_io_b_dout)
   );
-  TrueDualPortSRAM_128_8 TrueDualPortSRAM_128_8 ( // @[src/main/scala/axi/AxiScratchpad.scala 96:33]
+  TrueDualPortSRAM_128_8 TrueDualPortSRAM_128_8 ( // @[src/main/scala/axi/AxiScratchpad.scala 97:33]
     .clock(TrueDualPortSRAM_128_8_clock),
     .io_a_en(TrueDualPortSRAM_128_8_io_a_en),
     .io_a_we(TrueDualPortSRAM_128_8_io_a_we),
@@ -2823,7 +3046,7 @@ module AXI4Scratchpad(
     .io_b_addr(TrueDualPortSRAM_128_8_io_b_addr),
     .io_b_dout(TrueDualPortSRAM_128_8_io_b_dout)
   );
-  WriteEngine wrIE ( // @[src/main/scala/axi/AxiScratchpad.scala 129:25]
+  WriteEngine wrIE ( // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
     .aclk(wrIE_aclk),
     .aresetn(wrIE_aresetn),
     .s_axi_aw_ready(wrIE_s_axi_aw_ready),
@@ -2847,7 +3070,7 @@ module AXI4Scratchpad(
     .data(wrIE_data),
     .strb(wrIE_strb)
   );
-  ReadEngine rdIE ( // @[src/main/scala/axi/AxiScratchpad.scala 130:25]
+  ReadEngine rdIE ( // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
     .aclk(rdIE_aclk),
     .aresetn(rdIE_aresetn),
     .s_axi_ar_ready(rdIE_s_axi_ar_ready),
@@ -2861,196 +3084,199 @@ module AXI4Scratchpad(
     .s_axi_r_valid(rdIE_s_axi_r_valid),
     .s_axi_r_bits_id(rdIE_s_axi_r_bits_id),
     .s_axi_r_bits_data(rdIE_s_axi_r_bits_data),
+    .s_axi_r_bits_resp(rdIE_s_axi_r_bits_resp),
     .s_axi_r_bits_last(rdIE_s_axi_r_bits_last),
     .ready(rdIE_ready),
     .valid(rdIE_valid),
     .addr(rdIE_addr),
     .data(rdIE_data)
   );
-  SramArbiter arbiter ( // @[src/main/scala/axi/AxiScratchpad.scala 131:25]
+  SramArbiter arbiter ( // @[src/main/scala/axi/AxiScratchpad.scala 132:25]
     .wrvalid(arbiter_wrvalid),
-    .wrready(arbiter_wrready),
     .rdvalid(arbiter_rdvalid),
     .rdready(arbiter_rdready),
-    .wr_cs(arbiter_wr_cs),
-    .rd_cs(arbiter_rd_cs)
+    .conflict(arbiter_conflict)
   );
-  assign io_s_axi_aw_ready = wrIE_s_axi_aw_ready; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 147:21]
-  assign io_s_axi_w_ready = wrIE_s_axi_w_ready; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 147:21]
-  assign io_s_axi_b_valid = wrIE_s_axi_b_valid; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 147:21]
-  assign io_s_axi_b_bits_id = wrIE_s_axi_b_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 147:21]
-  assign io_s_axi_ar_ready = rdIE_s_axi_ar_ready; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 152:21]
-  assign io_s_axi_r_valid = rdIE_s_axi_r_valid; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 152:21]
-  assign io_s_axi_r_bits_id = rdIE_s_axi_r_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 152:21]
-  assign io_s_axi_r_bits_data = rdIE_s_axi_r_bits_data; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 152:21]
-  assign io_s_axi_r_bits_last = rdIE_s_axi_r_bits_last; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 152:21]
-  assign io_srams_0_dout = TrueDualPortSRAMAsym_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_1_dout = TrueDualPortSRAMAsym_1_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_2_dout = TrueDualPortSRAMAsym_2_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_3_dout = TrueDualPortSRAMAsym_3_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_4_dout = TrueDualPortSRAMAsym_4_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_5_dout = TrueDualPortSRAMAsym_5_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_6_dout = TrueDualPortSRAMAsym_6_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_7_dout = TrueDualPortSRAMAsym_7_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_8_dout = TrueDualPortSRAMAsym_8_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_9_dout = TrueDualPortSRAMAsym_9_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_10_dout = TrueDualPortSRAMAsym_10_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_srams_11_dout = TrueDualPortSRAMAsym_11_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign io_sram_last_dout = TrueDualPortSRAM_128_8_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 107:23]
+  assign io_s_axi_aw_ready = wrIE_s_axi_aw_ready; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 148:21]
+  assign io_s_axi_w_ready = wrIE_s_axi_w_ready; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 148:21]
+  assign io_s_axi_b_valid = wrIE_s_axi_b_valid; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 148:21]
+  assign io_s_axi_b_bits_id = wrIE_s_axi_b_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 148:21]
+  assign io_s_axi_ar_ready = rdIE_s_axi_ar_ready; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 153:21]
+  assign io_s_axi_r_valid = rdIE_s_axi_r_valid; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 153:21]
+  assign io_s_axi_r_bits_id = rdIE_s_axi_r_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 153:21]
+  assign io_s_axi_r_bits_data = rdIE_s_axi_r_bits_data; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 153:21]
+  assign io_s_axi_r_bits_resp = rdIE_s_axi_r_bits_resp; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 153:21]
+  assign io_s_axi_r_bits_last = rdIE_s_axi_r_bits_last; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 153:21]
+  assign io_srams_0_dout = TrueDualPortSRAMAsym_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_1_dout = TrueDualPortSRAMAsym_1_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_2_dout = TrueDualPortSRAMAsym_2_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_3_dout = TrueDualPortSRAMAsym_3_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_4_dout = TrueDualPortSRAMAsym_4_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_5_dout = TrueDualPortSRAMAsym_5_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_6_dout = TrueDualPortSRAMAsym_6_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_7_dout = TrueDualPortSRAMAsym_7_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_8_dout = TrueDualPortSRAMAsym_8_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_9_dout = TrueDualPortSRAMAsym_9_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_10_dout = TrueDualPortSRAMAsym_10_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_srams_11_dout = TrueDualPortSRAMAsym_11_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign io_sram_last_dout = TrueDualPortSRAM_128_8_io_b_dout; // @[src/main/scala/axi/AxiScratchpad.scala 108:23]
   assign TrueDualPortSRAMAsym_clock = clock;
-  assign TrueDualPortSRAMAsym_io_a_en = en & (we | re); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_io_a_we = en ? _T_6 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_io_a_addr = we ? wr_addr_bank : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_io_b_en = io_srams_0_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_io_b_we = io_srams_0_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_io_b_addr = io_srams_0_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_io_b_din = io_srams_0_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_io_a_en = en & (we | re); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_io_a_we = en ? _T_6 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_io_a_addr = we ? wr_addr_bank : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_io_b_en = io_srams_0_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_io_b_we = io_srams_0_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_io_b_addr = io_srams_0_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_io_b_din = io_srams_0_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_1_clock = clock;
-  assign TrueDualPortSRAMAsym_1_io_a_en = en_1 & (we_1 | re_1); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_1_io_a_we = en_1 ? _T_11 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_1_io_a_addr = we_1 ? wr_addr_bank_1 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_1_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_1_io_b_en = io_srams_1_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_1_io_b_we = io_srams_1_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_1_io_b_addr = io_srams_1_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_1_io_b_din = io_srams_1_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_1_io_a_en = en_1 & (we_1 | re_1); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_1_io_a_we = en_1 ? _T_11 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_1_io_a_addr = we_1 ? wr_addr_bank_1 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_1_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_1_io_b_en = io_srams_1_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_1_io_b_we = io_srams_1_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_1_io_b_addr = io_srams_1_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_1_io_b_din = io_srams_1_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_2_clock = clock;
-  assign TrueDualPortSRAMAsym_2_io_a_en = en_2 & (we_2 | re_2); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_2_io_a_we = en_2 ? _T_16 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_2_io_a_addr = we_2 ? wr_addr_bank_2 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_2_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_2_io_b_en = io_srams_2_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_2_io_b_we = io_srams_2_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_2_io_b_addr = io_srams_2_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_2_io_b_din = io_srams_2_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_2_io_a_en = en_2 & (we_2 | re_2); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_2_io_a_we = en_2 ? _T_16 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_2_io_a_addr = we_2 ? wr_addr_bank_2 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_2_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_2_io_b_en = io_srams_2_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_2_io_b_we = io_srams_2_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_2_io_b_addr = io_srams_2_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_2_io_b_din = io_srams_2_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_3_clock = clock;
-  assign TrueDualPortSRAMAsym_3_io_a_en = en_3 & (we_3 | re_3); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_3_io_a_we = en_3 ? _T_21 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_3_io_a_addr = we_3 ? wr_addr_bank_3 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_3_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_3_io_b_en = io_srams_3_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_3_io_b_we = io_srams_3_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_3_io_b_addr = io_srams_3_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_3_io_b_din = io_srams_3_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_3_io_a_en = en_3 & (we_3 | re_3); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_3_io_a_we = en_3 ? _T_21 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_3_io_a_addr = we_3 ? wr_addr_bank_3 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_3_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_3_io_b_en = io_srams_3_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_3_io_b_we = io_srams_3_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_3_io_b_addr = io_srams_3_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_3_io_b_din = io_srams_3_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_4_clock = clock;
-  assign TrueDualPortSRAMAsym_4_io_a_en = en_4 & (we_4 | re_4); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_4_io_a_we = en_4 ? _T_26 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_4_io_a_addr = we_4 ? wr_addr_bank_4 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_4_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_4_io_b_en = io_srams_4_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_4_io_b_we = io_srams_4_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_4_io_b_addr = io_srams_4_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_4_io_b_din = io_srams_4_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_4_io_a_en = en_4 & (we_4 | re_4); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_4_io_a_we = en_4 ? _T_26 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_4_io_a_addr = we_4 ? wr_addr_bank_4 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_4_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_4_io_b_en = io_srams_4_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_4_io_b_we = io_srams_4_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_4_io_b_addr = io_srams_4_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_4_io_b_din = io_srams_4_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_5_clock = clock;
-  assign TrueDualPortSRAMAsym_5_io_a_en = en_5 & (we_5 | re_5); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_5_io_a_we = en_5 ? _T_31 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_5_io_a_addr = we_5 ? wr_addr_bank_5 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_5_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_5_io_b_en = io_srams_5_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_5_io_b_we = io_srams_5_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_5_io_b_addr = io_srams_5_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_5_io_b_din = io_srams_5_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_5_io_a_en = en_5 & (we_5 | re_5); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_5_io_a_we = en_5 ? _T_31 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_5_io_a_addr = we_5 ? wr_addr_bank_5 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_5_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_5_io_b_en = io_srams_5_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_5_io_b_we = io_srams_5_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_5_io_b_addr = io_srams_5_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_5_io_b_din = io_srams_5_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_6_clock = clock;
-  assign TrueDualPortSRAMAsym_6_io_a_en = en_6 & (we_6 | re_6); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_6_io_a_we = en_6 ? _T_36 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_6_io_a_addr = we_6 ? wr_addr_bank_6 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_6_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_6_io_b_en = io_srams_6_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_6_io_b_we = io_srams_6_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_6_io_b_addr = io_srams_6_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_6_io_b_din = io_srams_6_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_6_io_a_en = en_6 & (we_6 | re_6); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_6_io_a_we = en_6 ? _T_36 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_6_io_a_addr = we_6 ? wr_addr_bank_6 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_6_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_6_io_b_en = io_srams_6_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_6_io_b_we = io_srams_6_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_6_io_b_addr = io_srams_6_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_6_io_b_din = io_srams_6_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_7_clock = clock;
-  assign TrueDualPortSRAMAsym_7_io_a_en = en_7 & (we_7 | re_7); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_7_io_a_we = en_7 ? _T_41 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_7_io_a_addr = we_7 ? wr_addr_bank_7 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_7_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_7_io_b_en = io_srams_7_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_7_io_b_we = io_srams_7_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_7_io_b_addr = io_srams_7_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_7_io_b_din = io_srams_7_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_7_io_a_en = en_7 & (we_7 | re_7); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_7_io_a_we = en_7 ? _T_41 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_7_io_a_addr = we_7 ? wr_addr_bank_7 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_7_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_7_io_b_en = io_srams_7_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_7_io_b_we = io_srams_7_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_7_io_b_addr = io_srams_7_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_7_io_b_din = io_srams_7_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_8_clock = clock;
-  assign TrueDualPortSRAMAsym_8_io_a_en = en_8 & (we_8 | re_8); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_8_io_a_we = en_8 ? _T_46 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_8_io_a_addr = we_8 ? wr_addr_bank_8 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_8_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_8_io_b_en = io_srams_8_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_8_io_b_we = io_srams_8_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_8_io_b_addr = io_srams_8_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_8_io_b_din = io_srams_8_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_8_io_a_en = en_8 & (we_8 | re_8); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_8_io_a_we = en_8 ? _T_46 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_8_io_a_addr = we_8 ? wr_addr_bank_8 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_8_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_8_io_b_en = io_srams_8_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_8_io_b_we = io_srams_8_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_8_io_b_addr = io_srams_8_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_8_io_b_din = io_srams_8_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_9_clock = clock;
-  assign TrueDualPortSRAMAsym_9_io_a_en = en_9 & (we_9 | re_9); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_9_io_a_we = en_9 ? _T_51 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_9_io_a_addr = we_9 ? wr_addr_bank_9 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_9_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_9_io_b_en = io_srams_9_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_9_io_b_we = io_srams_9_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_9_io_b_addr = io_srams_9_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_9_io_b_din = io_srams_9_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_9_io_a_en = en_9 & (we_9 | re_9); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_9_io_a_we = en_9 ? _T_51 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_9_io_a_addr = we_9 ? wr_addr_bank_9 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_9_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_9_io_b_en = io_srams_9_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_9_io_b_we = io_srams_9_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_9_io_b_addr = io_srams_9_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_9_io_b_din = io_srams_9_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_10_clock = clock;
-  assign TrueDualPortSRAMAsym_10_io_a_en = en_10 & (we_10 | re_10); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_10_io_a_we = en_10 ? _T_56 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_10_io_a_addr = we_10 ? wr_addr_bank_10 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_10_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_10_io_b_en = io_srams_10_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_10_io_b_we = io_srams_10_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_10_io_b_addr = io_srams_10_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_10_io_b_din = io_srams_10_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_10_io_a_en = en_10 & (we_10 | re_10); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_10_io_a_we = en_10 ? _T_56 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_10_io_a_addr = we_10 ? wr_addr_bank_10 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_10_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_10_io_b_en = io_srams_10_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_10_io_b_we = io_srams_10_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_10_io_b_addr = io_srams_10_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_10_io_b_din = io_srams_10_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAMAsym_11_clock = clock;
-  assign TrueDualPortSRAMAsym_11_io_a_en = en_11 & (we_11 | re_11); // @[src/main/scala/axi/AxiScratchpad.scala 211:15 213:25 219:25]
-  assign TrueDualPortSRAMAsym_11_io_a_we = en_11 ? _T_61 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 215:25 221:25]
-  assign TrueDualPortSRAMAsym_11_io_a_addr = we_11 ? wr_addr_bank_11 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 212:31]
-  assign TrueDualPortSRAMAsym_11_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 211:15 214:25]
-  assign TrueDualPortSRAMAsym_11_io_b_en = io_srams_11_en; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_11_io_b_we = io_srams_11_we; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_11_io_b_addr = io_srams_11_addr; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
-  assign TrueDualPortSRAMAsym_11_io_b_din = io_srams_11_din; // @[src/main/scala/axi/AxiScratchpad.scala 103:16]
+  assign TrueDualPortSRAMAsym_11_io_a_en = en_11 & (we_11 | re_11); // @[src/main/scala/axi/AxiScratchpad.scala 213:15 215:25 221:25]
+  assign TrueDualPortSRAMAsym_11_io_a_we = en_11 ? _T_61 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 217:25 223:25]
+  assign TrueDualPortSRAMAsym_11_io_a_addr = we_11 ? wr_addr_bank_11 : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 214:31]
+  assign TrueDualPortSRAMAsym_11_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 213:15 216:25]
+  assign TrueDualPortSRAMAsym_11_io_b_en = io_srams_11_en; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_11_io_b_we = io_srams_11_we; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_11_io_b_addr = io_srams_11_addr; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
+  assign TrueDualPortSRAMAsym_11_io_b_din = io_srams_11_din; // @[src/main/scala/axi/AxiScratchpad.scala 104:16]
   assign TrueDualPortSRAM_128_8_clock = clock;
-  assign TrueDualPortSRAM_128_8_io_a_en = en_last & (we_last | re_last); // @[src/main/scala/axi/AxiScratchpad.scala 250:18 253:34 259:34]
-  assign TrueDualPortSRAM_128_8_io_a_we = en_last ? _T_66 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 250:18 255:34 261:34]
-  assign TrueDualPortSRAM_128_8_io_a_addr = we_last ? wr_spad_addr : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 252:40]
-  assign TrueDualPortSRAM_128_8_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 250:18 254:34]
-  assign TrueDualPortSRAM_128_8_io_b_en = io_sram_last_en; // @[src/main/scala/axi/AxiScratchpad.scala 107:23]
-  assign TrueDualPortSRAM_128_8_io_b_addr = io_sram_last_addr; // @[src/main/scala/axi/AxiScratchpad.scala 107:23]
-  assign wrIE_aclk = io_aclk; // @[src/main/scala/axi/AxiScratchpad.scala 145:21]
-  assign wrIE_aresetn = io_aresetn; // @[src/main/scala/axi/AxiScratchpad.scala 146:21]
-  assign wrIE_s_axi_aw_valid = io_s_axi_aw_valid; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 122:17]
-  assign wrIE_s_axi_aw_bits_id = io_s_axi_aw_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 122:17]
-  assign wrIE_s_axi_aw_bits_addr = io_s_axi_aw_bits_addr; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 122:17]
-  assign wrIE_s_axi_aw_bits_len = io_s_axi_aw_bits_len; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 122:17]
-  assign wrIE_s_axi_aw_bits_size = io_s_axi_aw_bits_size; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 122:17]
-  assign wrIE_s_axi_aw_bits_burst = io_s_axi_aw_bits_burst; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 122:17]
-  assign wrIE_s_axi_w_valid = io_s_axi_w_valid; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 123:17]
-  assign wrIE_s_axi_w_bits_data = io_s_axi_w_bits_data; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 123:17]
-  assign wrIE_s_axi_w_bits_strb = io_s_axi_w_bits_strb; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 123:17]
-  assign wrIE_s_axi_w_bits_last = io_s_axi_w_bits_last; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 123:17]
-  assign wrIE_s_axi_b_ready = io_s_axi_b_ready; // @[src/main/scala/axi/AxiScratchpad.scala 121:25 124:17]
-  assign wrIE_ready = arbiter_wrready; // @[src/main/scala/axi/AxiScratchpad.scala 148:21]
-  assign rdIE_aclk = io_aclk; // @[src/main/scala/axi/AxiScratchpad.scala 150:21]
-  assign rdIE_aresetn = io_aresetn; // @[src/main/scala/axi/AxiScratchpad.scala 151:21]
-  assign rdIE_s_axi_ar_valid = io_s_axi_ar_valid; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 118:17]
-  assign rdIE_s_axi_ar_bits_id = io_s_axi_ar_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 118:17]
-  assign rdIE_s_axi_ar_bits_addr = io_s_axi_ar_bits_addr; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 118:17]
-  assign rdIE_s_axi_ar_bits_len = io_s_axi_ar_bits_len; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 118:17]
-  assign rdIE_s_axi_ar_bits_size = io_s_axi_ar_bits_size; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 118:17]
-  assign rdIE_s_axi_ar_bits_burst = io_s_axi_ar_bits_burst; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 118:17]
-  assign rdIE_s_axi_r_ready = io_s_axi_r_ready; // @[src/main/scala/axi/AxiScratchpad.scala 117:24 119:17]
-  assign rdIE_ready = arbiter_rdready; // @[src/main/scala/axi/AxiScratchpad.scala 153:21]
+  assign TrueDualPortSRAM_128_8_io_a_en = en_last & (we_last | re_last); // @[src/main/scala/axi/AxiScratchpad.scala 248:18 251:34 257:34]
+  assign TrueDualPortSRAM_128_8_io_a_we = en_last ? _T_66 : 16'h0; // @[src/main/scala/axi/AxiScratchpad.scala 248:18 253:34 259:34]
+  assign TrueDualPortSRAM_128_8_io_a_addr = we_last ? wr_spad_addr : rd_spad_addr; // @[src/main/scala/axi/AxiScratchpad.scala 250:40]
+  assign TrueDualPortSRAM_128_8_io_a_din = wrIE_data; // @[src/main/scala/axi/AxiScratchpad.scala 248:18 252:34]
+  assign TrueDualPortSRAM_128_8_io_b_en = io_sram_last_en; // @[src/main/scala/axi/AxiScratchpad.scala 108:23]
+  assign TrueDualPortSRAM_128_8_io_b_addr = io_sram_last_addr; // @[src/main/scala/axi/AxiScratchpad.scala 108:23]
+  assign wrIE_aclk = io_aclk; // @[src/main/scala/axi/AxiScratchpad.scala 146:21]
+  assign wrIE_aresetn = io_aresetn; // @[src/main/scala/axi/AxiScratchpad.scala 147:21]
+  assign wrIE_s_axi_aw_valid = io_s_axi_aw_valid; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 123:17]
+  assign wrIE_s_axi_aw_bits_id = io_s_axi_aw_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 123:17]
+  assign wrIE_s_axi_aw_bits_addr = io_s_axi_aw_bits_addr; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 123:17]
+  assign wrIE_s_axi_aw_bits_len = io_s_axi_aw_bits_len; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 123:17]
+  assign wrIE_s_axi_aw_bits_size = io_s_axi_aw_bits_size; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 123:17]
+  assign wrIE_s_axi_aw_bits_burst = io_s_axi_aw_bits_burst; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 123:17]
+  assign wrIE_s_axi_w_valid = io_s_axi_w_valid; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 124:17]
+  assign wrIE_s_axi_w_bits_data = io_s_axi_w_bits_data; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 124:17]
+  assign wrIE_s_axi_w_bits_strb = io_s_axi_w_bits_strb; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 124:17]
+  assign wrIE_s_axi_w_bits_last = io_s_axi_w_bits_last; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 124:17]
+  assign wrIE_s_axi_b_ready = io_s_axi_b_ready; // @[src/main/scala/axi/AxiScratchpad.scala 122:25 125:17]
+  assign wrIE_ready = 1'h1; // @[src/main/scala/axi/AxiScratchpad.scala 149:21]
+  assign rdIE_aclk = io_aclk; // @[src/main/scala/axi/AxiScratchpad.scala 151:21]
+  assign rdIE_aresetn = io_aresetn; // @[src/main/scala/axi/AxiScratchpad.scala 152:21]
+  assign rdIE_s_axi_ar_valid = io_s_axi_ar_valid; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 119:17]
+  assign rdIE_s_axi_ar_bits_id = io_s_axi_ar_bits_id; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 119:17]
+  assign rdIE_s_axi_ar_bits_addr = io_s_axi_ar_bits_addr; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 119:17]
+  assign rdIE_s_axi_ar_bits_len = io_s_axi_ar_bits_len; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 119:17]
+  assign rdIE_s_axi_ar_bits_size = io_s_axi_ar_bits_size; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 119:17]
+  assign rdIE_s_axi_ar_bits_burst = io_s_axi_ar_bits_burst; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 119:17]
+  assign rdIE_s_axi_r_ready = io_s_axi_r_ready; // @[src/main/scala/axi/AxiScratchpad.scala 118:24 120:17]
+  assign rdIE_ready = arbiter_rdready; // @[src/main/scala/axi/AxiScratchpad.scala 154:21]
   assign rdIE_data = 4'hc == currentRdBank ? TrueDualPortSRAM_128_8_io_a_dout : _rdIE_data_T_23; // @[src/main/scala/chisel3/util/Mux.scala 77:13]
-  assign arbiter_wrvalid = wrIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 186:21]
-  assign arbiter_rdvalid = rdIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 187:21]
-  assign arbiter_wr_cs = io_bcast_en ? 4'h0 : wr_csel; // @[src/main/scala/axi/AxiScratchpad.scala 159:25]
-  assign arbiter_rd_cs = rdIE_addr[15:12]; // @[src/main/scala/axi/AxiScratchpad.scala 138:34]
-  always @(posedge io_aclk) begin
-    currentRdBank <= rdIE_addr[15:12]; // @[src/main/scala/axi/AxiScratchpad.scala 138:34]
+  assign arbiter_wrvalid = wrIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 191:21]
+  assign arbiter_rdvalid = rdIE_valid; // @[src/main/scala/axi/AxiScratchpad.scala 192:21]
+  assign arbiter_conflict = io_bcast_en ? broadcastConflict : normalConflict; // @[src/main/scala/axi/AxiScratchpad.scala 167:28]
+  always @(posedge io_aclk or posedge asyncReset) begin
+    if (asyncReset) begin // @[src/main/scala/axi/AxiScratchpad.scala 176:24]
+      bcast_beat_cnt <= 8'h0; // @[src/main/scala/axi/AxiScratchpad.scala 177:22]
+    end else if (~io_bcast_en) begin // @[src/main/scala/axi/AxiScratchpad.scala 178:54]
+      bcast_beat_cnt <= 8'h0; // @[src/main/scala/axi/AxiScratchpad.scala 179:22]
+    end else if (io_s_axi_w_valid & io_s_axi_w_ready) begin // @[src/main/scala/axi/AxiScratchpad.scala 175:33]
+      bcast_beat_cnt <= _bcast_beat_cnt_T_1;
+    end
   end
   always @(posedge io_aclk or posedge asyncReset) begin
-    if (asyncReset) begin // @[src/main/scala/axi/AxiScratchpad.scala 171:24]
-      bcast_beat_cnt <= 8'h0; // @[src/main/scala/axi/AxiScratchpad.scala 172:22]
-    end else if (~io_bcast_en) begin // @[src/main/scala/axi/AxiScratchpad.scala 173:54]
-      bcast_beat_cnt <= 8'h0; // @[src/main/scala/axi/AxiScratchpad.scala 174:22]
-    end else if (io_s_axi_w_valid & io_s_axi_w_ready) begin // @[src/main/scala/axi/AxiScratchpad.scala 170:33]
-      bcast_beat_cnt <= _bcast_beat_cnt_T_1;
+    if (asyncReset) begin // @[src/main/scala/axi/AxiScratchpad.scala 186:34]
+      currentRdBank <= 4'h0; // @[src/main/scala/axi/AxiScratchpad.scala 186:34]
+    end else if (rdIE_valid & rdIE_ready) begin // @[src/main/scala/axi/AxiScratchpad.scala 186:34]
+      currentRdBank <= rd_csel;
     end
   end
 // Register and memory initialization
@@ -3096,6 +3322,9 @@ initial begin
 `endif // RANDOMIZE_REG_INIT
   if (asyncReset) begin
     bcast_beat_cnt = 8'h0;
+  end
+  if (asyncReset) begin
+    currentRdBank = 4'h0;
   end
   `endif // RANDOMIZE
 end // initial
@@ -57989,6 +58218,7 @@ module LinGoWithAXI(
   wire  spad_io_s_axi_r_valid; // @[src/main/scala/LinGoWithAXI.scala 70:20]
   wire [7:0] spad_io_s_axi_r_bits_id; // @[src/main/scala/LinGoWithAXI.scala 70:20]
   wire [127:0] spad_io_s_axi_r_bits_data; // @[src/main/scala/LinGoWithAXI.scala 70:20]
+  wire [1:0] spad_io_s_axi_r_bits_resp; // @[src/main/scala/LinGoWithAXI.scala 70:20]
   wire  spad_io_s_axi_r_bits_last; // @[src/main/scala/LinGoWithAXI.scala 70:20]
   wire  spad_io_srams_0_en; // @[src/main/scala/LinGoWithAXI.scala 70:20]
   wire [3:0] spad_io_srams_0_we; // @[src/main/scala/LinGoWithAXI.scala 70:20]
@@ -58191,6 +58421,7 @@ module LinGoWithAXI(
     .io_s_axi_r_valid(spad_io_s_axi_r_valid),
     .io_s_axi_r_bits_id(spad_io_s_axi_r_bits_id),
     .io_s_axi_r_bits_data(spad_io_s_axi_r_bits_data),
+    .io_s_axi_r_bits_resp(spad_io_s_axi_r_bits_resp),
     .io_s_axi_r_bits_last(spad_io_s_axi_r_bits_last),
     .io_srams_0_en(spad_io_srams_0_en),
     .io_srams_0_we(spad_io_srams_0_we),
@@ -58375,7 +58606,7 @@ module LinGoWithAXI(
   assign io_s_axi_r_valid = spad_io_s_axi_r_valid; // @[src/main/scala/LinGoWithAXI.scala 81:12]
   assign io_s_axi_r_bits_id = spad_io_s_axi_r_bits_id; // @[src/main/scala/LinGoWithAXI.scala 81:12]
   assign io_s_axi_r_bits_data = spad_io_s_axi_r_bits_data; // @[src/main/scala/LinGoWithAXI.scala 81:12]
-  assign io_s_axi_r_bits_resp = 2'h0; // @[src/main/scala/LinGoWithAXI.scala 81:12]
+  assign io_s_axi_r_bits_resp = spad_io_s_axi_r_bits_resp; // @[src/main/scala/LinGoWithAXI.scala 81:12]
   assign io_s_axi_r_bits_last = spad_io_s_axi_r_bits_last; // @[src/main/scala/LinGoWithAXI.scala 81:12]
   assign io_s_axilite_aw_ready = controller_io_s_axilite_aw_ready; // @[src/main/scala/LinGoWithAXI.scala 82:16]
   assign io_s_axilite_w_ready = controller_io_s_axilite_w_ready; // @[src/main/scala/LinGoWithAXI.scala 82:16]

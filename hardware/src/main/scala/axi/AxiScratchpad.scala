@@ -28,9 +28,10 @@ class AXI4Scratchpad(
               hasMask: Boolean = true
           ) extends Module {
 
-  /// set axi4 Parameters
-  // val AxiAddrWidth = log2Ceil(baseAddr + spadBanksNum * (1 << lgSizeSpadBank) + lgSizeLastBlock - 1) - log2Ceil(axiBeatBytes)
-  val AxiAddrWidth = log2Ceil(baseAddr + spadBanksNum * (1 << lgSizeSpadBank) + lgSizeLastBlock - 1)
+  // Use byte capacities, not their logarithms, and avoid Int overflow.
+  val AxiAddrWidth = log2Ceil(baseAddr +
+    spadBanksNum * (BigInt(1) << lgSizeSpadBank) +
+    (BigInt(1) << lgSizeLastBlock))
   val SPMAddrWidth = lgSizeSpadBank - log2Ceil(axiBeatBytes) 
   val lgAPortBytes = log2Ceil(axiBeatBytes)
 
@@ -128,7 +129,7 @@ class AXI4Scratchpad(
   withClockAndReset(io.aclk, asyncReset) {
     val wrIE    = Module(new WriteEngine(axi4Param))
     val rdIE    = Module(new ReadEngine(axi4Param))
-    val arbiter = Module(new SramArbiter(spadBanksNum + cfgSpadBanks))
+    val arbiter = Module(new SramArbiter)
 
     println("spadBanksNum:", spadBanksNum)
     println("lgDepthLast:", lgDepthLast)
@@ -152,21 +153,25 @@ class AXI4Scratchpad(
     rdIE.s_axi      <> axi4RdView
     rdIE.ready      := arbiter.rdready
 
-    /// connect the chip select signals to arbiter
-    /// In broadcast mode, wr_cs is forced to 0 so that arbiter never treats the write as
-    /// targeting the last config bank, and read/write address collision on a single bank
-    /// is benign -- broadcast writes hit multiple banks and are independent from reads.
-    arbiter.wr_cs := Mux(io.bcast_en, 0.U, wr_csel)
-    arbiter.rd_cs := rd_csel
+    val cfgCselMin = spadBanksNum.U
+    val cfgCselMax = (spadBanksNum + cfgSpadBanks - 1).U
+    val wrCfgSel = wr_csel >= cfgCselMin && wr_csel <= cfgCselMax
+    val rdCfgSel = rd_csel >= cfgCselMin && rd_csel <= cfgCselMax
+    val rdDataSel = rd_csel < spadBanksNum.U
+
+    // Every config address bank shares one physical A port. A broadcast
+    // conflicts only with data banks actually selected by its mask.
+    val normalConflict = (rdDataSel && wr_csel === rd_csel) || (wrCfgSel && rdCfgSel)
+    val broadcastConflict = MuxLookup(rd_csel, false.B)(
+      (0 until spadBanksNum).map(i => i.U -> io.bcast_bank_mask(i)))
+    arbiter.conflict := Mux(io.bcast_en, broadcastConflict, normalConflict)
 
     //////////////////////////
     /// Broadcast beat counter
     //////////////////////////
     // Counts actual AXI W data beats across the entire broadcast transfer (may
     // span multiple AXI bursts). Resets only when broadcast is disabled.
-    // IMPORTANT: use io.s_axi.w.valid && io.s_axi.w.ready (actual W handshake),
-    // NOT wrIE.valid -- the WriteEngine asserts valid as soon as AW is accepted,
-    // before the first W beat arrives, which would cause phantom counter increments.
+    // Count only accepted W beats, including SRAM backpressure.
     val bcast_beat_cnt = RegInit(0.U(SPMAddrWidth.W))
     when(!io.bcast_en) {
       bcast_beat_cnt := 0.U
@@ -178,7 +183,7 @@ class AXI4Scratchpad(
     val doutTable2 = (0 until cfgSpadBanks).map{ i => ((i+spadBanksNum).U -> spad_last_bank_io.a.dout) }
     val doutTable = doutTable1 ++ doutTable2
 
-    val currentRdBank = RegNext(rd_csel)
+    val currentRdBank = RegEnable(rd_csel, 0.U, rdIE.valid && rdIE.ready)
     rdIE.data := MuxLookup(currentRdBank, 0.U, doutTable)
 
     // arbiter.aclk    := io.aclk
@@ -200,11 +205,8 @@ class AXI4Scratchpad(
                              io.bcast_base_addr(i) + bcast_beat_cnt,
                              wr_spad_addr)
 
-      // In broadcast mode, gate write signals with actual W handshake to avoid
-      // phantom writes during the AW-to-W gap (wrIE.valid is true but no data yet)
-      val wr_data_valid = Mux(io.bcast_en,
-                              io.s_axi.w.valid && io.s_axi.w.ready,  // broadcast: actual W beat
-                              wrIE.ready & wrIE.valid)                 // normal: WriteEngine internal
+      // All write modes use the same accepted W beat from WriteEngine.
+      val wr_data_valid = wrIE.ready && wrIE.valid
       val en = (wr_bank_hit & wr_data_valid) | (rd_csel === i.U & rdIE.ready)
       val we = wr_data_valid & wr_bank_hit
       val re = rdIE.ready & rdIE.valid & rd_csel === i.U
@@ -233,10 +235,6 @@ class AXI4Scratchpad(
     // val en_last = (!io.bcast_en & wr_csel === spadBanksNum.U & wrIE.ready) | (rd_csel === spadBanksNum.U & rdIE.ready)
     // val we_last = !io.bcast_en & wrIE.ready & wrIE.valid & wr_csel === spadBanksNum.U
     // val re_last = rdIE.ready & rdIE.valid & wr_csel === spadBanksNum.U
-    val cfgCselMin = spadBanksNum.U
-    val cfgCselMax = (spadBanksNum + cfgSpadBanks - 1).U
-    val wrCfgSel = wr_csel >= cfgCselMin && wr_csel <= cfgCselMax
-    val rdCfgSel = rd_csel >= cfgCselMin && rd_csel <= cfgCselMax
     val wrCfgBankOff = if(cfgSpadBanks == 1) 0.U(1.W) else (wr_csel - cfgCselMin)(lgCfgSpadBanks - 1, 0)
     val rdCfgBankOff = if(cfgSpadBanks == 1) 0.U(1.W) else (rd_csel - cfgCselMin)(lgCfgSpadBanks - 1, 0)
     val wr_last_addr_full = if(cfgSpadBanks == 1) wr_last_addr else Cat(wrCfgBankOff, wr_last_addr)
@@ -260,13 +258,5 @@ class AXI4Scratchpad(
       spad_last_bank_io.a.din    := DontCare
       spad_last_bank_io.a.we     := 0.U
     }
-    // val last_arbiter = Module(new SramArbiter(cfgSpadBanks))
-    // val wr_last_csel  = wrIE.addr(AxiAddrWidth - 1, lgDepthLast)
-    // val rd_last_csel  = rdIE.addr(AxiAddrWidth - 1, lgDepthLast)
-    
-    // /// connect the chip select signals to arbiter
-    // last_arbiter.wr_cs := wr_last_csel === spadBanksNum << SPMAddrWidth - lgDepthLast
-    // last_arbiter.rd_cs := rd_last_csel === spadBanksNum << SPMAddrWidth - lgDepthLast
-
   } // withClockAndReset(aclk, asyncReset)
 }
