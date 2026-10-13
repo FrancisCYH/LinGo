@@ -1,0 +1,3 @@
+[submodule "soc/cheshire"]
+	path = soc/cheshire
+	url = https://github.com/pulp-platform/cheshire.git
