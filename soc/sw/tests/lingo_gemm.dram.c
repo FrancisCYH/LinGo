@@ -24,10 +24,12 @@
 #define GEMM_N              8
 #define GEMM_TILE_BYTES     (GEMM_N * GEMM_N * 4)
 
-// SPM buffer layout (from benchmarks/gemm/gemm_cocotb.py)
-#define SPM_X               0x6000u
-#define SPM_Y               0x7000u
-#define SPM_OUT             0x0000u   // initial output values AND result
+// SPM buffer layout: taken from the generated config header so the test
+// always matches the mapper's config stream (offsets change on re-mapping).
+// in_off = {X, Y, O-init}; out_off = {O}. O is read-modify-write.
+#define SPM_X               (lingo_gemm_in_off[0])
+#define SPM_Y               (lingo_gemm_in_off[1])
+#define SPM_OUT             (lingo_gemm_out_off[0])  // initial output values AND result
 
 static volatile uint16_t *const spm16 = (void *)LINGO_SPM_BASE;
 static volatile uint32_t *const spm32 = (void *)LINGO_SPM_BASE;
