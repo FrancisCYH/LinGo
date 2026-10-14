@@ -90,7 +90,7 @@ cd ..
 mkdir build
 cd build
 
-make -G Ninja .. \
+cmake -G Ninja .. \
     -DMLIR_DIR=$PWD/../llvm-project/build/lib/cmake/mlir \
     -DCLANG_DIR=$PWD/../llvm-project/build/lib/cmake/clang \
     -DLLVM_TARGETS_TO_BUILD="host" \
@@ -131,7 +131,7 @@ cmake -S . -B build -G Ninja \
   -DMLIR_DIR="$ADORA_LLVM_ROOT/lib/cmake/mlir" \
   -DLLVM_DIR="$ADORA_LLVM_ROOT/lib/cmake/llvm"
 
-cmake --build adora/build --target cgra-opt cgrv-opt adora-cdfg -j8
+cmake --build build --target cgra-opt cgrv-opt adora-cdfg -j8
 ```
 
 ## Run
@@ -147,11 +147,22 @@ bash export-cocotb.sh
 
 2. Compile app
 
+using LLVM compiler
+
 ```
 cd ./benchmarks
 cd [example]
 ../compile.sh [example] [kernel]
 cd .. && ./dot2json.sh
+```
+
+or MLIR Compiler ADORA [Experimental]
+
+
+```
+cd ./benchmarks
+cd [example]
+../mlirCompile.sh [example]
 ```
 
 3. Mapping
