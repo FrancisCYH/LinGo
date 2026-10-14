@@ -250,7 +250,7 @@
     "fclist" : [ 2, 2, 2 ]
   }]],
   "fgra_adg_filename" : "fgra_adg.json",
-  "id_width" : 8,
+  "id_width" : 6,
   "fgra_num_colum" : 6,
   "fgra_fg_gibs" : [ [ {
     "diag_iopin_connect" : true,

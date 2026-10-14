@@ -105,7 +105,7 @@ SPEC_DEFAULTS = {
     "spad_addr_num": 5,
     "fgra_cg_gibs": None,
     "fgra_adg_filename": "fgra_adg.json",
-    "id_width": 8,
+    "id_width": 6,
     "fgra_num_colum": None,  # colum 是硬件已有字段名，不能改成 column。
     "fgra_fg_gibs": None,
     "dma_num_req_in_flight": 8,
