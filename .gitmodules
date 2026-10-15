@@ -2,3 +2,6 @@
 	path = soc/cheshire
 	url = https://github.com/pulp-platform/cheshire.git
 	branch = main
+[submodule "soc/toolchain/riscv-gnu-toolchain"]
+	path = soc/toolchain/riscv-gnu-toolchain
+	url = https://github.com/riscv-collab/riscv-gnu-toolchain.git

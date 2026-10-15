@@ -1,6 +1,5 @@
 toolchain/
 Bender.local
-cheshire/
 build/*
 !build/run_lingo.sh
 !build/run_lingo.do
@@ -23,3 +22,5 @@ spec/
 src/lingo_soc_pkg.sv
 sw/include/lingo_regs.h
 sw/tests/lingo_gemm_cfg.h
+
+Bender.lock
