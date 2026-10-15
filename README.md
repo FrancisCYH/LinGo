@@ -175,7 +175,7 @@ cp ../benchmarks/[example]/xxx_cocotb.py ../simulation/workspace/[example].py
 
 4. Verfication
 
-First you need to write testbench like 'simulation/workspace/test_cgra.py'
+First you need to write testbench like `simulation/workspace/test_cgra.py`
 
 ```
 cd simulation
@@ -184,6 +184,114 @@ export PYTHONPATH=$(pwd)/server:$PYTHONPATH
 export PYTHONPATH=$(pwd)/workspace:$PYTHONPATH
 make [-j8]
 ```
+
+## SoC Intergration
+
+Integrates the LinGo CGRA into the [Cheshire](https://github.com/pulp-platform/cheshire) SoC as an external accelerator and runs bare-metal kernels in RTL simulation.
+
+### Preparation
+
+1. init Cheshire submodule 
+
+```
+cd LinGo
+git submodule update --init soc/cheshire
+git -C soc/cheshire submodule update --init sw/deps/printf
+```
+
+2. Install necessary python modules
+
+```
+conda activate lingo
+pip install -r requirements.txt
+```
+
+3. Get bender v0.32.1
+
+```
+cd LinGo/soc
+mkdir -p toolchain && cd toolchain
+curl -L -O https://github.com/pulp-platform/bender/releases/download/v0.32.1/bender-x86_64-unknown-linux-gnu.tar.xz
+tar -xf bender-x86_64-unknown-linux-gnu.tar.xz
+cd bender-x86_64-unknown-linux-gnu && mv bender ../
+ln -s "$(realpath bender)" "$CONDA_PREFIX/bin/bender"
+```
+
+4. Hardware dependencies (network needed)
+
+```
+cd LinGo/soc
+bender checkout                 
+bash util/get_sim_models.sh     
+```
+
+5. RISC-V bare-metal toolchain 
+
+```
+cd LinGo
+git submodule update --init --recursive soc/toolchain/riscv-gnu-toolchain
+cd soc/toolchain/riscv-gnu-toolchain
+
+./configure \
+    --prefix="$(pwd)/../riscv" \
+    --with-arch=rv64gc \
+    --with-abi=lp64d
+
+make -j32
+```
+
+6. Proprietary tools, installed separately and on `PATH` — versions follow cheshire's docs ([sim](https://pulp-platform.github.io/cheshire/tg/sim/), [xilinx](https://pulp-platform.github.io/cheshire/tg/xilinx/)): QuestaSim `>= 2022.3` (validated: 2024.2); Vivado `>= 2020.2` for the FPGA flow only (validated: 2022.2).
+
+### Build SoC simulator
+
+1. Import LinGo hardware
+```
+cd LinGo/hardware && bash genRTL.sh
+cd ../soc
+bash util/sync_rtl.sh           
+python3 util/gen_lingo_soc.py    
+python3 util/gen_lingo_cfg.py [example]
+# e.g. python3 util/gen_lingo_cfg.py gemm
+```
+
+2. Build
+
+```
+conda activate lingo
+cd LinGo/soc/build
+bash gen_vsim_do.sh
+vsim -c -do "do lingo.vsim.do; quit"
+```
+
+[Notice]: if met problems like below from OpenTitan `regtool.py`
+
+```
+ModuleNotFoundError: No module named 'pkg_resources'
+```
+
+use `util/fix_pkgresource.sh`
+
+3. Compile bare-metal application
+
+First, you need to write apps like `soc/sw/tests/lingo_gemm.dram.c`
+
+```
+cd LinGo/soc
+make -C sw lingo_spm.dram.elf lingo_gemm.dram.elf
+```
+
+### Run
+
+```
+cd LinGo/soc/build   
+bash run_lingo.sh ../sw/tests/lingo_gemm.dram.elf   
+```
+
+Each test preloads the ELF into the DRAM model, releases the hart over JTAG, and prints PASS/FAIL over UART.
+
+### License
+
+Cheshire is SHL-0.51 (see `cheshire/LICENSE`); adapted sources retain their original headers. New files follow the license of the LinGo repository.
 
 ## [Experimental] GUI flow
 
@@ -200,3 +308,50 @@ then visit localhost:8080
 ![gui_map](docs/pics/gui_map.png)
 
 ![gui_verify](docs/pics/gui_verify.png)
+
+
+## Papers
+
+```
+@INPROCEEDINGS{ISCA26,
+  author={Dai, Yuan and Zou, Guibin and Yang, Yuanda and Lin, Huan and Lou, Jiahang and Luo, Yiwen and Cai, Xinyu and Yin, Wenbo and Luk, Wai-Shing and Wang, Lingli},
+  booktitle={2026 ACM/IEEE 53rd Annual International Symposium on Computer Architecture (ISCA)}, 
+  title={Lora: Towards Improved Applicability of Reconfigurable Architecture for Versatile Nonlinear Functions}, 
+  year={2026},
+  volume={},
+  number={},
+  pages={825-841},
+  doi={10.1109/ISCA66397.2026.00068}}
+
+@INPROCEEDINGS{ISCAS26,
+  author={Lou, Jiahang and Zhang, Jianrong and Dai, Yuan and Zhong, Zewei and Lin, Huan and Yin, Wenbo and Wang, Lingli},
+  booktitle={2026 IEEE International Symposium on Circuits and Systems (ISCAS)}, 
+  title={Live Demonstration: An Agile FPGA-Overlayed CGRA SoC for High-Efficiency Computing}, 
+  year={2026},
+  volume={},
+  number={},
+  pages={1683-1683},
+  doi={10.1109/ISCAS66217.2026.11562155}}
+
+@ARTICLE{TC25,
+  author={Dai, Yuan and Gao, Xuchen and Qiu, Yunhui and Li, Jingyuan and Cao, Yuhang and Mao, Yiqing and Chen, Sichao and Yin, Wenbo and Luk, Wai-Shing and Wang, Lingli},
+  journal={IEEE Transactions on Computers}, 
+  title={COFFA: A Co-Design Framework for Fused-Grained Reconfigurable Architecture Towards Efficient Irregular Loop Handling}, 
+  year={2025},
+  volume={74},
+  number={9},
+  pages={3099-3113},
+  doi={10.1109/TC.2025.3585345}}
+
+
+@INPROCEEDINGS{DAC25,
+  author={Lou, Jiahang and Zhu, Qilong and Dai, Yuan and Zhong, Zewei and Yin, Wenbo and Wang, Lingli},
+  booktitle={2025 62nd ACM/IEEE Design Automation Conference (DAC)}, 
+  title={Adora Compiler: End-to-End Optimization for High-Efficiency Dataflow Acceleration and Task Pipelining on CGRAs}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-7},
+  doi={10.1109/DAC63849.2025.11132391}}
+
+```

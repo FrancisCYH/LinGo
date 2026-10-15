@@ -1,0 +1,39 @@
+# Part of the LinGo project (soc/ Cheshire integration).
+#
+# Root Bender manifest for the LinGo + Cheshire SoC. Cheshire is referenced
+# as a path dependency (the pinned git submodule in ./cheshire); no upstream
+# file is modified. Build from ./build, e.g.:
+#
+#   bender --dir .. script vsim \
+#       -t sim -t test -t rtl -t cva6 -t cv64a6_imafdchsclic_sv39_wb -t lingo \
+#       --vlog-arg="-sv -timescale 1ns/1ps" > lingo.vsim.do
+
+package:
+  name: lingo_soc
+  authors:
+    - "LinGo project"
+
+dependencies:
+  cheshire: { path: "cheshire" }
+  # Direct deps so their `include_dirs` (axi/typedef.svh etc.) reach our
+  # sources; bender only propagates include dirs of direct dependencies.
+  # Versions match Bender.lock / cheshire's own requirements.
+  axi:                 { git: "https://github.com/pulp-platform/axi.git",                version: 0.39.8 }
+  apb:                 { git: "https://github.com/pulp-platform/apb.git",                version: 0.2.4  }
+  common_cells:        { git: "https://github.com/pulp-platform/common_cells.git",       version: 1.40.0 }
+  register_interface:  { git: "https://github.com/pulp-platform/register_interface.git", version: 0.4.5  }
+
+sources:
+  - target: lingo
+    files:
+      - rtl/lingo/LinGoWithAXI.v
+      - src/lingo_soc_pkg.sv
+      - src/lingo_regbus_to_axilite.sv
+      - src/lingo_wrap.sv
+      - src/cheshire_top_lingo_pkg.sv
+      - src/cheshire_top_lingo.sv
+
+  - target: all(lingo, any(simulation, test))
+    files:
+      - src/fixture_cheshire_top_lingo.sv
+      - src/tb_cheshire_top_lingo.sv
