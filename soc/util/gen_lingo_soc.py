@@ -109,6 +109,7 @@ def main() -> int:
         c.append(f"#define LINGO_{name.upper():24s} 0x{off:02X}u")
     c.append("")
     c.append("#endif /* LINGO_REGS_H */")
+    (SOC_DIR / "sw/include").mkdir(parents=True, exist_ok=True)
     (SOC_DIR / "sw/include/lingo_regs.h").write_text("\n".join(c) + "\n")
 
     print(f"lingo_soc_pkg.sv: axi {data_width}b/{id_width}b id/{axi_addr_width}b addr, "

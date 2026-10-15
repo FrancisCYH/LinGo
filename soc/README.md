@@ -12,17 +12,20 @@ git submodule update --init soc/cheshire
 git -C soc/cheshire submodule update --init sw/deps/printf
 ```
 
-2. Conda env (skip the first line if you already created the `lingo` env via the top-level README)
+2. Install necessary python modules
 
 ```
-conda create -n lingo python=3.12
 conda activate lingo
-pip install peakrdl peakrdl-rawheader hjson mako pyyaml "setuptools<81" flatdict GitPython tabulate
+pip install -r requirements.txt
 
-cd LinGo/soc/toolchain
-wget https://github.com/pulp-platform/bender/releases/download/v0.27.1/bender-0.27.1-x86_64-linux-gnu.tar.gz
-tar -xf bender-0.27.1-x86_64-linux-gnu.tar.gz
-cp bender "$CONDA_PREFIX/bin/"
+
+cd LinGo/soc
+mkdir toolchain
+cd toolchain
+curl -L -O https://github.com/pulp-platform/bender/releases/download/v0.32.1/bender-x86_64-unknown-linux-gnu.tar.xz
+tar -xf bender-x86_64-unknown-linux-gnu.tar.xz
+cd bender-x86_64-unknown-linux-gnu && mv bender ../
+ln -s "$(realpath bender)" "$CONDA_PREFIX/bin/bender"
 ```
 
 3. LinGo hardware and SoC parameters
@@ -37,7 +40,7 @@ python3 util/gen_lingo_soc.py    # spec/ -> src/lingo_soc_pkg.sv, sw/include/lin
 python3 util/gen_lingo_cfg.py gemm   # gemm test only; needs the mapper output ../benchmarks/gemm/config.bit
 ```
 
-4. Hardware dependencies (network)
+4. Hardware dependencies (network needed)
 
 ```
 cd LinGo/soc
@@ -53,6 +56,17 @@ Prebuilt archives are named `<arch>-<libc>-<host>-<compiler>`; **ubuntu-22.04 be
 cd LinGo/soc/toolchain
 wget https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2026.07.15/riscv64-elf-ubuntu-22.04-gcc.tar.xz
 tar -xf riscv64-elf-ubuntu-22.04-gcc.tar.xz
+
+git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
+cd riscv-gnu-toolchain
+
+./configure \
+    --prefix="$(pwd)/../riscv" \
+    --with-arch=rv64gc \
+    --with-abi=lp64d
+
+make -j8
+
 ```
 
 6. Proprietary tools, installed separately and on `PATH` — versions follow cheshire's docs ([sim](https://pulp-platform.github.io/cheshire/tg/sim/), [xilinx](https://pulp-platform.github.io/cheshire/tg/xilinx/)): QuestaSim `>= 2022.3` (validated: 2024.2); Vivado `>= 2020.2` for the FPGA flow only (validated: 2022.2).
@@ -61,9 +75,9 @@ tar -xf riscv64-elf-ubuntu-22.04-gcc.tar.xz
 
 ```
 conda activate lingo
-cd LinGo/soc
+cd LinGo/soc/build
 
-mkdir -p build && cd build
+# mkdir -p build && cd build
 bash gen_vsim_do.sh
 vsim -c -do "do lingo.vsim.do; quit"
 cd ..
