@@ -293,6 +293,15 @@ Each test preloads the ELF into the DRAM model, releases the hart over JTAG, and
 
 Cheshire is SHL-0.51 (see `cheshire/LICENSE`); adapted sources retain their original headers. New files follow the license of the LinGo repository.
 
+## ZYNQ FPGA Overlay demo
+
+see in `LinGo_FPGA_Prototype/README.md`
+
+We achieved llama2 large language model inference acceleration on operator like `GEMV` and `RoPE`. 
+
+![llama](docs/pics/llama.gif)
+
+
 ## [Experimental] GUI flow
 
 ```
@@ -323,16 +332,6 @@ then visit localhost:8080
   pages={825-841},
   doi={10.1109/ISCA66397.2026.00068}}
 
-@INPROCEEDINGS{ISCAS26,
-  author={Lou, Jiahang and Zhang, Jianrong and Dai, Yuan and Zhong, Zewei and Lin, Huan and Yin, Wenbo and Wang, Lingli},
-  booktitle={2026 IEEE International Symposium on Circuits and Systems (ISCAS)}, 
-  title={Live Demonstration: An Agile FPGA-Overlayed CGRA SoC for High-Efficiency Computing}, 
-  year={2026},
-  volume={},
-  number={},
-  pages={1683-1683},
-  doi={10.1109/ISCAS66217.2026.11562155}}
-
 @ARTICLE{TC25,
   author={Dai, Yuan and Gao, Xuchen and Qiu, Yunhui and Li, Jingyuan and Cao, Yuhang and Mao, Yiqing and Chen, Sichao and Yin, Wenbo and Luk, Wai-Shing and Wang, Lingli},
   journal={IEEE Transactions on Computers}, 
@@ -343,6 +342,15 @@ then visit localhost:8080
   pages={3099-3113},
   doi={10.1109/TC.2025.3585345}}
 
+  @ARTICLE{11296830,
+  author={Dai, Yuan and Gao, Xuchen and Lin, Huan and Yin, Wenbo and Luk, Wai-Shing and Wang, Lingli},
+  journal={IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems}, 
+  title={Dependency-Aware Data Parallelism on Spatial CGRA via Constraint Satisfaction and Graph Coloring}, 
+  year={2026},
+  volume={45},
+  number={8},
+  pages={3822-3835},
+  doi={10.1109/TCAD.2025.3642732}}
 
 @INPROCEEDINGS{DAC25,
   author={Lou, Jiahang and Zhu, Qilong and Dai, Yuan and Zhong, Zewei and Yin, Wenbo and Wang, Lingli},
@@ -353,5 +361,15 @@ then visit localhost:8080
   number={},
   pages={1-7},
   doi={10.1109/DAC63849.2025.11132391}}
+
+  @INPROCEEDINGS{ISCAS26,
+  author={Lou, Jiahang and Zhang, Jianrong and Dai, Yuan and Zhong, Zewei and Lin, Huan and Yin, Wenbo and Wang, Lingli},
+  booktitle={2026 IEEE International Symposium on Circuits and Systems (ISCAS)}, 
+  title={Live Demonstration: An Agile FPGA-Overlayed CGRA SoC for High-Efficiency Computing}, 
+  year={2026},
+  volume={},
+  number={},
+  pages={1683-1683},
+  doi={10.1109/ISCAS66217.2026.11562155}}
 
 ```

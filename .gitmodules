@@ -5,3 +5,6 @@
 [submodule "soc/toolchain/riscv-gnu-toolchain"]
 	path = soc/toolchain/riscv-gnu-toolchain
 	url = https://github.com/riscv-collab/riscv-gnu-toolchain.git
+[submodule "LinGo_FPGA_Prototype"]
+	path = LinGo_FPGA_Prototype
+	url = https://github.com/Starryskyz/LinGo_FPGA_Prototype.git
