@@ -295,7 +295,12 @@ Cheshire is SHL-0.51 (see `cheshire/LICENSE`); adapted sources retain their orig
 
 ## ZYNQ FPGA Overlay demo
 
-see in `LinGo_FPGA_Prototype/README.md`
+```
+cd LinGo
+git submodule update --init LinGo_FPGA_Prototype
+```
+
+and see `LinGo_FPGA_Prototype/README.md`
 
 We achieved llama2 large language model inference acceleration on operator like `GEMV` and `RoPE`. 
 
@@ -352,7 +357,7 @@ then visit localhost:8080
   pages={3822-3835},
   doi={10.1109/TCAD.2025.3642732}}
 
-@INPROCEEDINGS{DAC25,
+  @INPROCEEDINGS{DAC25,
   author={Lou, Jiahang and Zhu, Qilong and Dai, Yuan and Zhong, Zewei and Yin, Wenbo and Wang, Lingli},
   booktitle={2025 62nd ACM/IEEE Design Automation Conference (DAC)}, 
   title={Adora Compiler: End-to-End Optimization for High-Efficiency Dataflow Acceleration and Task Pipelining on CGRAs}, 
