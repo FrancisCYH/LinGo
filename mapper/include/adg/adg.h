@@ -1,6 +1,7 @@
 #ifndef __ADG_H__
 #define __ADG_H__
 
+#include <cstdint>
 #include "adg/adg_node.h"
 #include "adg/adg_edge.h"
 #include "graph/graph.h"
