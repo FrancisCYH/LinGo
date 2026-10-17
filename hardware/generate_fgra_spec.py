@@ -17,12 +17,23 @@ import sys
 DEFAULT_OUTPUT = Path(__file__).resolve().parent / "src/main/resources/fgra_spec.json"
 
 # 操作顺序也决定生成文件的字节内容；不要用 set 排序或去重。
+# 1
 INTEGER_OPS = [
-    "PASS", "ADD", "SUB", "ULE", "ULT", "UGE", "UGT", "SLT", "SGE", "SGT",
-    "SLE", "AND", "OR", "XOR", "XNOR", "NE", "EQ", "MUL", "SHL", "LSHR",
-    "ASHR", "CSHL", "CSHR", "SEL",
+    "ADD", "SUB", "MUL", "ULE", "ULT", "UGE", "UGT", "SLT", "SGE", "SGT", "SLE", 
+    "PASS", "AND", "OR", "XOR", "XNOR", "NE", "NOT", "EQ",  "SHL", "LSHR",
+    "ASHR", "CSHL", "CSHR", 
+    "SEL", "ISEL", "CISEL",
+    "ACC", "CACC", "CDIACC", "CIACC", 
+    "MAX", "MIN",
+    "MAC", 
+    "SEXT", "ZEXT"
 ]
-FLOAT_CONVERSION_OPS = ["FMAX", "FMIN", "FPTOSI", "SITOFP"]
+FLOAT_OPS = ["FADDSUB", "FMUL", "FACC", "FCMP"]
+FLOAT_CONVERSION_OPS = ["FPTOSI", "SITOFP"]
+FLOAT_COMPARE_OPS = ["FMAX", "FMIN"]
+SPECIAL_OPS = ["FDIV"]
+
+# ["MOD", "FDIV"]
 
 
 def pe(mode, operations, lut=0, delay_cg=16, delay_fg=8):
@@ -45,32 +56,60 @@ PE_PROFILES = {
     "div_mul": pe(0, INTEGER_OPS + FLOAT_CONVERSION_OPS
                   + ["FMUL", "FADDSUB", "FDIV"], lut=2),
     "div": pe(0, INTEGER_OPS + FLOAT_CONVERSION_OPS + ["FADDSUB", "FDIV"], lut=2),
+    
+    "G": pe(0, INTEGER_OPS + FLOAT_OPS + FLOAT_CONVERSION_OPS, lut=4),
+    "F": pe(0, INTEGER_OPS + FLOAT_OPS + FLOAT_CONVERSION_OPS + FLOAT_COMPARE_OPS + SPECIAL_OPS, lut=4),
+    "P": pe(1, FLOAT_OPS + FLOAT_CONVERSION_OPS, lut=4),
+    "X": pe(2, ["XCORE"]),
+
 }
 
 # 坐标均为零起始 [row][column]；布局的尺寸直接决定阵列尺寸。
+# CURRENT_PE_LAYOUT = [
+#     ["basic",   "basic",   "basic", "basic",   "basic",   "basic"],
+#     ["unified", "unified", "xcore", "unified", "unified", "unified"],
+#     ["acc",     "acc",     "acc",   "acc",     "acc",     "acc"],
+#     ["basic",   "unified", "unified", "xcore", "unified", "basic"],
+#     ["div_mul", "div",     "div",   "div",     "div",     "div_mul"],
+#     ["basic",   "basic",   "basic", "basic",   "basic",   "basic"],
+# ]
+
+# 16
+# CURRENT_PE_LAYOUT = [
+#     # 0.   1.   2.   3.   4.   5.   6.   7.   8.   9.   10   11   12   13   14   15
+#     ["G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G"],
+#     ["G", "G", "P", "P", "P", "P", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G"],
+#     ["G", "G", "P", "P", "P", "P", "G", "X", "G", "G", "G", "G", "G", "G", "G", "G"],
+#     ["G", "G", "P", "P", "P", "P", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G"],
+#     ["G", "G", "P", "P", "P", "P", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G"],
+#     ["G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G"],
+# ]
+
+# 12
 CURRENT_PE_LAYOUT = [
-    ["basic",   "basic",   "basic", "basic",   "basic",   "basic"],
-    ["unified", "unified", "xcore", "unified", "unified", "unified"],
-    ["acc",     "acc",     "acc",   "acc",     "acc",     "acc"],
-    ["basic",   "unified", "unified", "xcore", "unified", "basic"],
-    ["div_mul", "div",     "div",   "div",     "div",     "div_mul"],
-    ["basic",   "basic",   "basic", "basic",   "basic",   "basic"],
+    # 0.   1.   2.   3.   4.   5.   6.   7.   8.   9.   10   11 
+    ["G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", ],
+    ["G", "G", "P", "P", "P", "P", "F", "G", "G", "G", "X", "P", ],
+    ["G", "F", "P", "P", "P", "P", "G", "X", "F", "F", "F", "P", ],
+    ["G", "F", "P", "P", "P", "P", "G", "F", "X", "F", "G", "P", ],
+    ["G", "X", "P", "P", "P", "P", "F", "G", "G", "G", "G", "P", ],
+    ["G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", ],
 ]
 
 # 保持原 JSON 字段顺序。None 是 build_spec 自动生成的布局/派生参数。
 # lg_* 表示 log2 位数：例如 bank_lg_size=12 对应每个 bank 4096 字节。
 # 全局 PE/IOB/GIB 默认值与逐实例值可不同；显式实例表优先。
 SPEC_DEFAULTS = {
-    "fgra_cfg_blk_offset": 6,
+    "fgra_cfg_blk_offset": 6, ###
     "fgra_gib_track_reged_mode_cg": 1,
     "fgra_gpe_num_reg_rf_for_lut": 1,
     "ls_stream_queue_depth": 2,
-    "spad_bank_lg_size": 12,
-    "fgra_iob_lg_max_lat": 6,
+    "spad_bank_lg_size": 14,
+    "fgra_iob_lg_max_lat": 8, ###
     "fgra_cfg_sram_add_reg": False,
     "fgra_support_multiple_precision": False,
     "fgra_iob_sram_addr_width": None,
-    "fgra_exe_lg_max_ii": 4,
+    "fgra_exe_lg_max_ii": 5, ###
     "logWidth": 32,
     "maxSeg": 6,
     "spad_data_width": 128,
@@ -83,25 +122,25 @@ SPEC_DEFAULTS = {
     "rs_exe_queue_depth": 4,
     "operation_set_filename": "operations.json",
     "dumpOperationSet": True,
-    "fgra_iob_lg_max_cycles": 13,
-    "fgra_exe_lg_max_execute_cycles": 16,
+    "fgra_iob_lg_max_cycles": 16, ###
+    "fgra_exe_lg_max_execute_cycles": 16, ###
     "rs_cmd_queue_depth": 16,
     "fgra_iobs": None,
     "fgra_iob_sram_add_reg": True,
-    "fgra_gpe_num_input_lut": 0,
+    "fgra_gpe_num_input_lut": 4,
     "rs_store_queue_depth": 8,
-    "fgra_max_delay_fg": 8,
+    "fgra_max_delay_fg": 8, ##
     "fgra_gpe_fg_columns": None,
     "fgra_gpe_in_from_dir": [4, 5, 7, 6],
     "fgra_gib_diag_iopin_connect_cg": True,
-    "fgra_iob_lg_max_stride": 11,
+    "fgra_iob_lg_max_stride": 16, ##
     "fgra_iob_has_io_fg": True,
     "tlb_num_ways": 32,
     "fgra_cfg_data_width": 32,
-    "fgra_max_delay_cg": 4,
+    "fgra_max_delay_cg": 16,
     "fgra_gpe_num_reg_rf_for_alu": 1,
     "fgra_num_row": None,
-    "spad_cfg_lg_size": 12,
+    "spad_cfg_lg_size": 14, ###
     "spad_addr_num": 5,
     "fgra_cg_gibs": None,
     "fgra_adg_filename": "fgra_adg.json",
@@ -111,9 +150,9 @@ SPEC_DEFAULTS = {
     "dma_num_req_in_flight": 8,
     "tlb_is_shared": True,
     "fgra_iob_num_sides": 2,
-    "fgra_iob_lg_max_ii": 4,
-    "fgra_cfg_addr_width": 14,
-    "fgra_exe_lg_max_loop_cycles": 10,
+    "fgra_iob_lg_max_ii": 5, ###
+    "fgra_cfg_addr_width": 16, ###
+    "fgra_exe_lg_max_loop_cycles": 16,
     "fgra_iob_mode": 3,
     "dumpADG": True,
     "fgra_gib_num_track_fg": 1,
@@ -132,7 +171,7 @@ SPEC_DEFAULTS = {
     # 全局 fallback 不含 SEL，且 MUL 放在末尾；与 basic 模板不同。
     "fgra_gpe_operations": [op for op in INTEGER_OPS if op not in ("MUL", "SEL")] + ["MUL"],
     "spad_num_banks": None,
-    "fgra_gib_num_track_cg": 1,
+    "fgra_gib_num_track_cg": 2,
     "fgra_iob_ag_nest_levels": 3,
 }
 
@@ -152,16 +191,16 @@ class Architecture:
     parameters: dict = field(default_factory=dict)
     pe_overrides: dict = field(default_factory=dict)
     iob_template: dict = field(default_factory=lambda: {
-        "iob_mode": 2, "has_io_fg": True, "max_delay_cg": 2, "max_delay_fg": 2,
+        "iob_mode": 3, "has_io_fg": True, "max_delay_cg": 8, "max_delay_fg": 8,
     })
     iob_overrides: dict = field(default_factory=dict)
     # None 表示按全局 diag 和 flexibility 自动生成；当前实例 fclist=[2,2,2]
     # 与全局 flexibility=[2,4,4] 不同，必须独立保留，不能相互替换。
     cg_gib_template: dict = field(default_factory=lambda: {
-        "diag_iopin_connect": True, "fclist": [2, 2, 2],
+        "diag_iopin_connect": True, "fclist": [2, 2, 4],
     })
     fg_gib_template: dict = field(default_factory=lambda: {
-        "diag_iopin_connect": True, "fclist": [2, 2, 2],
+        "diag_iopin_connect": True, "fclist": [2, 2, 4],
     })
     cg_gib_overrides: dict = field(default_factory=dict)
     fg_gib_overrides: dict = field(default_factory=dict)

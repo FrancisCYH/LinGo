@@ -1005,7 +1005,7 @@ val CondDualInitAccOpInfoMap: Map[String, (ListBuffer[Int], String)] = Map(
 						fmax.io.a := op0
 						fmax.io.b := op1
 						fmax.io.mode := 2.U
-						Seq(Mux(fmax.io.result, op0, op1)) //mode=1
+						Seq(Mux(fmax.io.result, op1, op0)) //mode=1 //@starryskyz fixed
 					},
 					"AND" -> {
 						Seq(logic.io.out(0), logic.io.out(1))

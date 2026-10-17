@@ -30,8 +30,6 @@ class LinGoController(attrs: mutable.Map[String, Any], regSpecFile: String)
   val axilDataWidth = attrs("axilite_datawidth").asInstanceOf[Int]
   val axilAddrWidth = log2Ceil(attrs("axilite_addrspace").asInstanceOf[Int])
   require(axilDataWidth == 32, "cocotb compatibility requires 32-bit AXI-Lite")
-  require(coalesceBanks == nColumns,
-    "AuFORA-style grouping requires one coalesced group per IOB side")
   val csrWordBytes = axilDataWidth / 8
   val numIobEnRegs = (nBanks + axilDataWidth - 1) / axilDataWidth
   val numBcastMaskRegs = (nBanks + axilDataWidth - 1) / axilDataWidth

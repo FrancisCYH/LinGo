@@ -390,7 +390,7 @@ def worker(job, payload):
             specfile = spec_path()
             specfile.write_bytes(builder.render_spec(spec))
             env.update(LINGO_SPEC=str(specfile), LINGO_OUTPUT_DIR=str(directory))
-            run(job, ['conda', 'run', '--no-capture-output', '-n', 'lingo', 'sbt', 'runMain fgramemfp.VerilogGen'], ROOT / 'hardware', env)
+            run(job, ['conda', 'run', '--no-capture-output', '-n', 'lingo', 'sbt', '-mem', '4096', 'runMain fgramemfp.VerilogGen'], ROOT / 'hardware', env)
             output = directory
             verilog = output / 'LinGoWithAXI.v'
             for path in (verilog, output / 'lingo-spec/lingo_adg.json', output / 'lingo-spec/operations.json'):
